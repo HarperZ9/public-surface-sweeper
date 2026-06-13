@@ -8,16 +8,23 @@ from typing import Any, Iterable
 REQUIRED_FILES = ("README.md", "LICENSE", "AUTHORS.md", "CONTRIBUTING.md")
 SKIP_DIRS = {
     ".git",
+    ".Codex",
+    ".claude",
+    ".codex",
     ".hg",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
     ".tox",
     ".venv",
+    ".vscode",
+    ".warden-safe-cache",
     "__pycache__",
     "build",
+    "coverage",
     "dist",
     "node_modules",
+    "target",
 }
 MAX_SCAN_BYTES = 1_000_000
 SEVERITY_ORDER = {"info": 0, "warning": 1, "error": 2}

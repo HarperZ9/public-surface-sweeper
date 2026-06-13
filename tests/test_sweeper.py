@@ -40,6 +40,17 @@ def test_scan_ignores_binary_files(tmp_path: Path) -> None:
     assert scan(tmp_path) == []
 
 
+def test_scan_ignores_local_tool_state(tmp_path: Path) -> None:
+    _write_required_files(tmp_path)
+    token = "ghp_" + ("A" * 36)
+    for dirname in (".claude", ".Codex", ".warden-safe-cache", "target"):
+        local_dir = tmp_path / dirname
+        local_dir.mkdir()
+        (local_dir / "note.md").write_text(f"ignored - {token}\n", encoding="utf-8")
+
+    assert scan(tmp_path) == []
+
+
 def test_valid_proof_surface_packet_passes_validation() -> None:
     packet = {
         "proof_surface_version": "0.1",
