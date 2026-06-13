@@ -5,12 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "public-surface-sweeper"
 version = "0.1.0"
-description = "CLI checks for public repository release hygiene"
+description = "Pre-release hygiene CLI for public repositories and proof-surface packets"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Zain Dana Harper" }]
-keywords = ["repository", "release", "security", "cli"]
+keywords = ["repository", "release", "hygiene", "proof", "cli"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
@@ -31,4 +31,3 @@ public-surface-sweeper = "public_surface_sweeper.cli:main"
 addopts = "-q"
 pythonpath = ["src"]
 testpaths = ["tests"]
-
