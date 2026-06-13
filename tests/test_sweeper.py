@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from public_surface_sweeper.packet import validate_proof_surface_packet
 from public_surface_sweeper.sweeper import format_text, scan
 
 
@@ -37,3 +38,53 @@ def test_scan_ignores_binary_files(tmp_path: Path) -> None:
     (tmp_path / "artifact.bin").write_bytes(b"\x00\x01\x02")
 
     assert scan(tmp_path) == []
+
+
+def test_valid_proof_surface_packet_passes_validation() -> None:
+    packet = {
+        "proof_surface_version": "0.1",
+        "packet_id": "public-surface-sweeper-clean-repo",
+        "surface": "clean-repo public release surface",
+        "status": "ready",
+        "claims": [
+            {
+                "claim": "Required public release files are visible.",
+                "evidence": "required-file findings=0",
+            }
+        ],
+        "checks": [
+            {
+                "tool": "public-surface-sweeper",
+                "status": "pass",
+                "summary": "score=100, findings=0",
+            }
+        ],
+        "action_items": [],
+    }
+
+    assert validate_proof_surface_packet(packet) == []
+
+
+def test_cli_emits_proof_packet_for_clean_fixture() -> None:
+    import os
+    import subprocess
+    import sys
+
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(Path(__file__).parents[1] / "src")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "public_surface_sweeper",
+            str(Path(__file__).parents[1] / "examples" / "clean-repo"),
+            "--proof-packet",
+        ],
+        check=False,
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "proof_surface_version" in result.stdout
