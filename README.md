@@ -29,6 +29,7 @@ public-surface-sweeper .
 public-surface-sweeper . --json
 public-surface-sweeper . --summary
 public-surface-sweeper . --summary --json
+public-surface-sweeper . --proof-packet
 public-surface-sweeper . --fail-on warning
 ```
 
@@ -109,6 +110,17 @@ action_items:
 Summary mode is the fastest handoff format for release reviews. It gives a
 bounded readiness score, a status, finding counts, and the first actionable
 items to fix before publishing or showing the repository to a reviewer.
+
+## Proof-surface packet output
+
+Use `--proof-packet` when the scan result should feed `repo-proof-index` or a
+release-readiness report. The packet follows the shared proof-surface interop
+shape: claims, checks, and action items in one JSON object.
+
+```bash
+public-surface-sweeper . --proof-packet > public-surface.packet.json
+repo-proof-index public-surface.packet.json --summary
+```
 
 ## What it does not do
 

@@ -5,7 +5,15 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from .sweeper import SEVERITY_ORDER, Finding, format_summary, format_text, scan, summarize_findings
+from .sweeper import (
+    SEVERITY_ORDER,
+    Finding,
+    format_summary,
+    format_text,
+    proof_surface_packet,
+    scan,
+    summarize_findings,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -18,6 +26,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--summary",
         action="store_true",
         help="Print a release-readiness summary instead of individual findings.",
+    )
+    parser.add_argument(
+        "--proof-packet",
+        action="store_true",
+        help="Print a proof-surface interop packet as JSON.",
     )
     parser.add_argument(
         "--fail-on",
@@ -37,8 +50,11 @@ def _should_fail(findings: list[Finding], fail_on: str) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    findings = scan(Path(args.root))
-    if args.summary:
+    root = Path(args.root)
+    findings = scan(root)
+    if args.proof_packet:
+        print(json.dumps(proof_surface_packet(root, findings), indent=2))
+    elif args.summary:
         summary = summarize_findings(findings)
         if args.json:
             print(json.dumps(asdict(summary), indent=2))
