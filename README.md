@@ -1,13 +1,15 @@
 # public-surface-sweeper
 
-`public-surface-sweeper` is a small CLI for checking whether a repository is
-ready to present as a public project.
+`public-surface-sweeper` is a pre-release hygiene pass for repositories that are
+about to become public evidence. It checks the front door: required project
+files, secret-shaped text, obvious presentation defects, and proof-surface
+packet output for downstream review.
 
-It checks for required project files, secret-shaped values, private key blocks,
-and public-facing punctuation that is often normalized before publication.
+Use it before a repository asks a user, customer, reviewer, investor, or future
+maintainer to trust what it says.
 
-It is intended as a release-hygiene gate, not a full security scanner or
-certification tool.
+It is intentionally narrow: a release-hygiene gate, not a full security scanner
+or certification tool.
 
 ## Install
 
