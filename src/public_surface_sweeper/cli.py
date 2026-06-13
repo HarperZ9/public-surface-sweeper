@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict
 from pathlib import Path
 
+from .packet import validate_proof_surface_packet
 from .sweeper import (
     SEVERITY_ORDER,
     Finding,
@@ -53,7 +55,14 @@ def main(argv: list[str] | None = None) -> int:
     root = Path(args.root)
     findings = scan(root)
     if args.proof_packet:
-        print(json.dumps(proof_surface_packet(root, findings), indent=2))
+        packet = proof_surface_packet(root, findings)
+        issues = validate_proof_surface_packet(packet)
+        if issues:
+            print("error: generated proof-surface packet failed validation", file=sys.stderr)
+            for issue in issues:
+                print(f"  {issue}", file=sys.stderr)
+            return 1
+        print(json.dumps(packet, indent=2))
     elif args.summary:
         summary = summarize_findings(findings)
         if args.json:
