@@ -27,6 +27,8 @@ python -m pytest
 ```bash
 public-surface-sweeper .
 public-surface-sweeper . --json
+public-surface-sweeper . --summary
+public-surface-sweeper . --summary --json
 public-surface-sweeper . --fail-on warning
 ```
 
@@ -91,6 +93,22 @@ ERROR README.md:12 em-dash: replace em dash with plain punctuation
   }
 ]
 ```
+
+## Example summary output
+
+```text
+score: 75
+status: blocked
+total_findings: 1
+errors: 1
+warnings: 0
+action_items:
+- LICENSE: missing required file: LICENSE
+```
+
+Summary mode is the fastest handoff format for release reviews. It gives a
+bounded readiness score, a status, finding counts, and the first actionable
+items to fix before publishing or showing the repository to a reviewer.
 
 ## What it does not do
 

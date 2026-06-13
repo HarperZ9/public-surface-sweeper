@@ -60,6 +60,16 @@ class Finding:
     message: str
 
 
+@dataclass(frozen=True)
+class SweepSummary:
+    score: int
+    status: str
+    total_findings: int
+    errors: int
+    warnings: int
+    action_items: list[str]
+
+
 def _relative(path: Path, root: Path) -> str:
     try:
         return path.relative_to(root).as_posix()
@@ -156,3 +166,43 @@ def format_text(findings: list[Finding]) -> str:
         lines.append(f"{item.severity.upper()} {location} {item.rule}: {item.message}")
     return "\n".join(lines)
 
+
+def summarize_findings(findings: list[Finding], action_limit: int = 8) -> SweepSummary:
+    errors = sum(1 for item in findings if item.severity == "error")
+    warnings = sum(1 for item in findings if item.severity == "warning")
+    score = max(0, 100 - (errors * 25) - (warnings * 10))
+    if errors:
+        status = "blocked"
+    elif warnings:
+        status = "needs-polish"
+    else:
+        status = "ready"
+    return SweepSummary(
+        score=score,
+        status=status,
+        total_findings=len(findings),
+        errors=errors,
+        warnings=warnings,
+        action_items=[_action_text(item) for item in findings[:action_limit]],
+    )
+
+
+def _action_text(item: Finding) -> str:
+    location = item.path if item.line == 0 else f"{item.path}:{item.line}"
+    return f"{location}: {item.message}"
+
+
+def format_summary(summary: SweepSummary) -> str:
+    lines = [
+        f"score: {summary.score}",
+        f"status: {summary.status}",
+        f"total_findings: {summary.total_findings}",
+        f"errors: {summary.errors}",
+        f"warnings: {summary.warnings}",
+        "action_items:",
+    ]
+    if summary.action_items:
+        lines.extend(f"- {item}" for item in summary.action_items)
+    else:
+        lines.append("- none")
+    return "\n".join(lines)
