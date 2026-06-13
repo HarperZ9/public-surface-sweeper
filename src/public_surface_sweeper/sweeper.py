@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 REQUIRED_FILES = ("README.md", "LICENSE", "AUTHORS.md", "CONTRIBUTING.md")
 SKIP_DIRS = {
@@ -206,3 +206,52 @@ def format_summary(summary: SweepSummary) -> str:
     else:
         lines.append("- none")
     return "\n".join(lines)
+
+
+def proof_surface_packet(root: Path, findings: list[Finding]) -> dict[str, Any]:
+    summary = summarize_findings(findings)
+    required_gaps = sum(1 for item in findings if item.rule == "required-file")
+    secret_hits = sum(1 for item in findings if item.rule in _secret_rules())
+    punctuation_hits = sum(1 for item in findings if item.rule == "em-dash")
+    return {
+        "proof_surface_version": "0.1",
+        "packet_id": f"public-surface-sweeper-{root.resolve().name}",
+        "surface": f"{root.resolve().name} public release surface",
+        "status": summary.status,
+        "claims": [
+            {
+                "claim": "Required public release files are visible.",
+                "evidence": f"required-file findings={required_gaps}",
+            },
+            {
+                "claim": "Secret-shaped values are surfaced before publication.",
+                "evidence": f"secret-shaped findings={secret_hits}",
+            },
+            {
+                "claim": "Public text hygiene is checkable.",
+                "evidence": f"em-dash findings={punctuation_hits}",
+            },
+        ],
+        "checks": [
+            {
+                "tool": "public-surface-sweeper",
+                "status": _packet_check_status(summary.status),
+                "summary": f"score={summary.score}, findings={summary.total_findings}",
+            }
+        ],
+        "action_items": summary.action_items,
+    }
+
+
+def _secret_rules() -> set[str]:
+    return {rule for rule, _, _ in SECRET_PATTERNS}
+
+
+def _packet_check_status(status: str) -> str:
+    if status == "ready":
+        return "pass"
+    if status == "needs-polish":
+        return "warn"
+    if status == "blocked":
+        return "fail"
+    return "unknown"
