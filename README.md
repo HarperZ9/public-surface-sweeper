@@ -115,7 +115,9 @@ items to fix before publishing or showing the repository to a reviewer.
 
 Use `--proof-packet` when the scan result should feed `repo-proof-index` or a
 release-readiness report. The packet follows the shared proof-surface interop
-shape: claims, checks, and action items in one JSON object.
+shape: claims, checks, and action items in one JSON object. The generated packet
+is self-checked before printing so producer drift fails before entering the
+pipeline.
 
 ```bash
 public-surface-sweeper . --proof-packet > public-surface.packet.json
