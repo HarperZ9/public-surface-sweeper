@@ -56,6 +56,39 @@ SECRET_PATTERNS = (
         "Slack token shaped value",
     ),
 )
+SECRET_ASSIGNMENT_PATTERN = re.compile(
+    r"""
+    (?<![A-Za-z0-9_])
+    ["']?
+    (?P<name>
+        api[_-]?key|
+        api[_-]?token|
+        access[_-]?token|
+        auth[_-]?token|
+        client[_-]?secret|
+        password|
+        passwd|
+        secret|
+        token
+    )
+    ["']?
+    \s*(?:=|:)\s*
+    ["']?
+    (?P<value>[A-Za-z0-9][A-Za-z0-9._~+/=-]{15,})
+    ["']?
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+PLACEHOLDER_MARKERS = (
+    "changeme",
+    "dummy",
+    "example",
+    "placeholder",
+    "redacted",
+    "sample",
+    "test",
+    "your",
+)
 
 
 @dataclass(frozen=True)
@@ -140,8 +173,10 @@ def _text_findings(root: Path, path: Path, text: str) -> list[Finding]:
             )
         )
 
+    provider_spans: list[tuple[int, int]] = []
     for rule, pattern, message in SECRET_PATTERNS:
         for match in pattern.finditer(text):
+            provider_spans.append(match.span())
             findings.append(
                 Finding(
                     path=rel_path,
@@ -151,7 +186,37 @@ def _text_findings(root: Path, path: Path, text: str) -> list[Finding]:
                     message=message,
                 )
             )
+    for match in SECRET_ASSIGNMENT_PATTERN.finditer(text):
+        if _overlaps_any(match.span("value"), provider_spans):
+            continue
+        if _is_placeholder_value(match.group("value")):
+            continue
+        findings.append(
+            Finding(
+                path=rel_path,
+                line=_line_number(text, match.start("value")),
+                rule="secret-assignment",
+                severity="error",
+                message=f"{match.group('name')} appears to contain a credential-shaped value",
+            )
+        )
     return findings
+
+
+def _overlaps_any(span: tuple[int, int], spans: list[tuple[int, int]]) -> bool:
+    start, end = span
+    return any(start < other_end and other_start < end for other_start, other_end in spans)
+
+
+def _is_placeholder_value(value: str) -> bool:
+    normalized = value.strip("\"'<>[](){}").strip()
+    if len(normalized) < 16:
+        return True
+    lowered = normalized.lower()
+    if any(marker in lowered for marker in PLACEHOLDER_MARKERS):
+        return True
+    variable_part = re.sub(r"[^A-Za-z0-9]", "", normalized)
+    return len(set(variable_part)) <= 3
 
 
 def scan(root: Path) -> list[Finding]:
@@ -251,7 +316,7 @@ def proof_surface_packet(root: Path, findings: list[Finding]) -> dict[str, Any]:
 
 
 def _secret_rules() -> set[str]:
-    return {rule for rule, _, _ in SECRET_PATTERNS}
+    return {rule for rule, _, _ in SECRET_PATTERNS} | {"secret-assignment"}
 
 
 def _packet_check_status(status: str) -> str:
