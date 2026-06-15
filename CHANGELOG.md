@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Adds value-focused generic credential-assignment detection for token, API key,
+  client secret, and password fields.
+- Keeps placeholders and secret-shaped labels out of findings so release gates
+  stay actionable.
+
 ## v0.1.1 - 2026-06-14
 
 - Adds proof-surface packet output for release-readiness handoffs.

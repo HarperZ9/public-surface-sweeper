@@ -72,9 +72,14 @@ Secret-shaped values:
 - OpenAI key shaped values
 - AWS access key shaped values
 - Slack token shaped values
+- generic credential assignments such as `token: <value>`, `api_key=<value>`,
+  `client_secret=<value>`, and `password=<value>` when the value is not an
+  obvious placeholder
 
 The scanner skips common cache, build, virtualenv, and dependency directories.
 It also skips binary files and text files larger than 1 MB.
+Secret-shaped labels and placeholders such as `YOUR_API_KEY_HERE`, `redacted`,
+or `example-token-placeholder` are ignored so findings stay value-focused.
 
 ## Example text output
 
