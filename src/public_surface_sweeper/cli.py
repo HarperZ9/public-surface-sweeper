@@ -6,7 +6,8 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from .packet import validate_proof_surface_packet
+from proof_surface.packet import validate_packet
+
 from .sweeper import (
     SEVERITY_ORDER,
     Finding,
@@ -56,11 +57,11 @@ def main(argv: list[str] | None = None) -> int:
     findings = scan(root)
     if args.proof_packet:
         packet = proof_surface_packet(root, findings)
-        issues = validate_proof_surface_packet(packet)
+        issues = validate_packet(packet)
         if issues:
             print("error: generated proof-surface packet failed validation", file=sys.stderr)
             for issue in issues:
-                print(f"  {issue}", file=sys.stderr)
+                print(f"  {issue.path}: {issue.message}", file=sys.stderr)
             return 1
         print(json.dumps(packet, indent=2))
     elif args.summary:

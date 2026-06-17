@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from public_surface_sweeper.packet import validate_proof_surface_packet
+from proof_surface.packet import validate_packet
 from public_surface_sweeper.sweeper import format_text, scan
 
 
@@ -103,7 +103,7 @@ def test_valid_proof_surface_packet_passes_validation() -> None:
         "action_items": [],
     }
 
-    assert validate_proof_surface_packet(packet) == []
+    assert validate_packet(packet) == []
 
 
 def test_cli_emits_proof_packet_for_clean_fixture() -> None:
@@ -112,7 +112,11 @@ def test_cli_emits_proof_packet_for_clean_fixture() -> None:
     import sys
 
     env = os.environ.copy()
-    env["PYTHONPATH"] = str(Path(__file__).parents[1] / "src")
+    local_src = str(Path(__file__).parents[1] / "src")
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = (
+        local_src + os.pathsep + existing if existing else local_src
+    )
     result = subprocess.run(
         [
             sys.executable,
