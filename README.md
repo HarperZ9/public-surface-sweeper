@@ -1,9 +1,12 @@
-# public-surface-sweeper
+# Public Surface Sweeper
 
-`public-surface-sweeper` is a pre-release hygiene pass for repositories that are
-about to become public evidence. It checks the front door: required project
-files, secret-shaped text, obvious presentation defects, and proof-surface
-packet output for downstream review.
+> Pre-release repo-hygiene CLI: required-file checks and secret-shape detection. Hygiene, not a vuln scanner.
+
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
+![version](https://img.shields.io/badge/version-0.1.1-informational.svg)
+[![CI](https://github.com/HarperZ9/public-surface-sweeper/actions/workflows/ci.yml/badge.svg)](https://github.com/HarperZ9/public-surface-sweeper/actions/workflows/ci.yml)
+[![part of: AI-accountability toolkit](https://img.shields.io/badge/part_of-AI--accountability_toolkit-7a5cff.svg)](https://harperz9.github.io)
 
 Use it before a repository asks a user, customer, reviewer, investor, or future
 maintainer to trust what it says.
@@ -150,7 +153,7 @@ repo public surface -> hygiene findings -> proof index -> release-readiness repo
 Its job is to catch basic public-surface defects before a repository asks users,
 clients, employers, or reviewers to trust it.
 
-## Authorship
-
-Created and maintained by Zain Dana Harper. Claude Code contributed to the
-initial implementation.
+---
+**Zain Dana Harper** — small tools with explicit edges.
+[Portfolio](https://harperz9.github.io) · [HarperZ9](https://github.com/HarperZ9)
+<sub>Built with Claude Code; reviewed, tested, and owned by me.</sub>
