@@ -6,6 +6,9 @@
   client secret, and password fields.
 - Keeps placeholders and secret-shaped labels out of findings so release gates
   stay actionable.
+- Adds warning-level README delivery checks for public value, developer
+  workflow, runnable commands, and substantive visual assets.
+- Includes README delivery evidence in proof-surface packet claims.
 
 ## v0.1.1 - 2026-06-14
 

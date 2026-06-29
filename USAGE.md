@@ -1,8 +1,9 @@
 # Usage Guide
 
 `public-surface-sweeper` is a pre-release repo-hygiene CLI. It checks for
-required project files, em dash characters in public-facing text, and
-secret-shaped values. It is a hygiene gate, not a vulnerability scanner.
+required project files, em dash characters in public-facing text,
+secret-shaped values, and README delivery quality. It is a hygiene gate, not a
+vulnerability scanner.
 
 This guide covers the real CLI and the importable Python API. Every flag,
 command, and function shown here exists in the current source.
@@ -31,16 +32,17 @@ module with `python -m public_surface_sweeper`.
 public-surface-sweeper [ROOT] [--json] [--summary] [--proof-packet] [--fail-on {none,warning,error}]
 ```
 
-- `ROOT` — repository root to scan. Optional; defaults to `.`.
-- `--json` — print findings as a JSON array.
-- `--summary` — print a release-readiness summary instead of individual findings.
-- `--summary --json` — print the summary as a JSON object.
-- `--proof-packet` — print a proof-surface interop packet as JSON.
-- `--fail-on {none,warning,error}` — minimum severity that returns a failing
+- `ROOT` - repository root to scan. Optional; defaults to `.`.
+- `--json` - print findings as a JSON array.
+- `--summary` - print a release-readiness summary instead of individual findings.
+- `--summary --json` - print the summary as a JSON object.
+- `--proof-packet` - print a proof-surface interop packet as JSON.
+- `--fail-on {none,warning,error}` - minimum severity that returns a failing
   exit code. Default is `error`.
 
 The process exits `1` when findings at or above the `--fail-on` threshold are
-present, otherwise `0`. All current rules emit `error`-severity findings.
+present, otherwise `0`. Required-file, punctuation, and secret-shaped findings
+are errors. README delivery findings are warnings.
 
 ## Python API
 
@@ -172,6 +174,10 @@ Expected output (for the problem repo above):
     {
       "claim": "Public text hygiene is checkable.",
       "evidence": "em-dash findings=1"
+    },
+    {
+      "claim": "Public and developer delivery are inspectable.",
+      "evidence": "readme delivery findings=0"
     }
   ],
   "checks": [
@@ -195,8 +201,8 @@ the command writes an error to stderr and exits `1`.
 
 ## Exit codes
 
-- `0` — no findings at or above the `--fail-on` threshold.
-- `1` — findings at or above the threshold, or a proof-packet that failed
+- `0` - no findings at or above the `--fail-on` threshold.
+- `1` - findings at or above the threshold, or a proof-packet that failed
   internal validation.
 
 Use `--fail-on none` to print findings without failing the process (useful in
