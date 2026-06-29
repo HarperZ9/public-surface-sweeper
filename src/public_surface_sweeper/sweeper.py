@@ -125,6 +125,10 @@ BADGE_IMAGE_MARKERS = (
 MARKDOWN_IMAGE_PATTERN = re.compile(
     r"!\[(?P<alt>[^\]]*)\]\((?P<target>[^)\s]+)(?:\s+\"[^\"]*\")?\)"
 )
+HTML_IMAGE_PATTERN = re.compile(
+    r"<img\b[^>]*\bsrc=[\"'](?P<target>[^\"']+)[\"'][^>]*>",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -265,18 +269,25 @@ def _has_substantive_readme_image(root: Path, text: str) -> bool:
     for match in MARKDOWN_IMAGE_PATTERN.finditer(text):
         alt = match.group("alt").lower()
         target = match.group("target").strip("<>").split("#", 1)[0].split("?", 1)[0]
-        lowered_target = target.lower()
-        if any(marker in alt or marker in lowered_target for marker in BADGE_IMAGE_MARKERS):
-            continue
-        if lowered_target.startswith(("http://", "https://")):
-            if lowered_target.endswith(SUBSTANTIVE_IMAGE_EXTENSIONS):
-                return True
-            continue
-        if not lowered_target.endswith(SUBSTANTIVE_IMAGE_EXTENSIONS):
-            continue
-        if (root / target).is_file():
+        if _is_substantive_image_target(root, target, alt):
+            return True
+    for match in HTML_IMAGE_PATTERN.finditer(text):
+        target = match.group("target").strip("<>").split("#", 1)[0].split("?", 1)[0]
+        if _is_substantive_image_target(root, target):
             return True
     return False
+
+
+def _is_substantive_image_target(root: Path, target: str, alt: str = "") -> bool:
+    lowered_target = target.lower()
+    lowered_alt = alt.lower()
+    if any(marker in lowered_alt or marker in lowered_target for marker in BADGE_IMAGE_MARKERS):
+        return False
+    if lowered_target.startswith(("http://", "https://")):
+        return lowered_target.endswith(SUBSTANTIVE_IMAGE_EXTENSIONS)
+    if not lowered_target.endswith(SUBSTANTIVE_IMAGE_EXTENSIONS):
+        return False
+    return (root / target).is_file()
 
 
 def _text_findings(root: Path, path: Path, text: str) -> list[Finding]:

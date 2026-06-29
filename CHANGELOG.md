@@ -9,6 +9,8 @@
 - Adds warning-level README delivery checks for public value, developer
   workflow, runnable commands, and substantive visual assets.
 - Includes README delivery evidence in proof-surface packet claims.
+- Recognizes centered HTML `<img src="...">` README hero images as
+  substantive visual assets when the referenced file exists.
 
 ## v0.1.1 - 2026-06-14
 

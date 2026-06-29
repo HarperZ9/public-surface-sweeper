@@ -68,6 +68,25 @@ def test_scan_accepts_public_and_developer_delivery(tmp_path: Path) -> None:
     assert scan(tmp_path) == []
 
 
+def test_scan_accepts_html_readme_image(tmp_path: Path) -> None:
+    _write_required_files(tmp_path)
+    (tmp_path / "README.md").write_text(
+        "# Demo\n\n"
+        '<p align="center">\n'
+        '  <img src="docs/brand/demo-hero.png" alt="Demo hero">\n'
+        "</p>\n\n"
+        "## Why it matters\n\n"
+        "This explains the public value.\n\n"
+        "## Try it\n\n"
+        "```bash\npython -m demo\n```\n\n"
+        "## For developers\n\n"
+        "```bash\npython -m pytest\n```\n",
+        encoding="utf-8",
+    )
+
+    assert scan(tmp_path) == []
+
+
 def test_scan_detects_generic_secret_assignments(tmp_path: Path) -> None:
     _write_required_files(tmp_path)
     api_token = "q7R4m9T2" + "v8K1p6S3n5X0"
