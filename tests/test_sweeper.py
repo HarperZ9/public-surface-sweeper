@@ -7,7 +7,23 @@ from public_surface_sweeper.sweeper import format_text, scan
 
 
 def _write_required_files(root: Path) -> None:
-    for name in ("README.md", "LICENSE", "AUTHORS.md", "CONTRIBUTING.md"):
+    brand_dir = root / "docs" / "brand"
+    brand_dir.mkdir(parents=True)
+    (brand_dir / "demo-hero.png").write_bytes(b"fake image")
+    (root / "README.md").write_text(
+        "# Demo\n\n"
+        "![Demo hero](docs/brand/demo-hero.png)\n\n"
+        "> A clear public description for a useful tool.\n\n"
+        "## Why it matters\n\n"
+        "This explains the public value.\n\n"
+        "## Try it\n\n"
+        "```bash\npython -m demo\n```\n\n"
+        "## For developers\n\n"
+        "Run the tests before changing behavior.\n\n"
+        "```bash\npython -m pytest\n```\n",
+        encoding="utf-8",
+    )
+    for name in ("LICENSE", "AUTHORS.md", "CONTRIBUTING.md"):
         (root / name).write_text("ok\n", encoding="utf-8")
 
 
@@ -22,8 +38,9 @@ def test_scan_detects_public_surface_findings(tmp_path: Path) -> None:
     _write_required_files(tmp_path)
     token = "ghp_" + "ABCdef1234567890ABCdef1234567890zz"
     em_dash = chr(0x2014)
-    (tmp_path / "README.md").write_text(
-        f"title\nbad {em_dash} dash\n{token}\n",
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        readme.read_text(encoding="utf-8") + f"\nbad {em_dash} dash\n{token}\n",
         encoding="utf-8",
     )
 
@@ -31,6 +48,24 @@ def test_scan_detects_public_surface_findings(tmp_path: Path) -> None:
 
     assert {item.rule for item in findings} == {"em-dash", "github-token"}
     assert "README.md:2" in format_text(findings)
+
+
+def test_scan_warns_when_delivery_sections_are_missing(tmp_path: Path) -> None:
+    _write_required_files(tmp_path)
+    (tmp_path / "README.md").write_text("# Demo\n\nA useful tool.\n", encoding="utf-8")
+
+    findings = scan(tmp_path)
+
+    by_rule = {item.rule: item for item in findings}
+    assert by_rule["readme-public-delivery"].severity == "warning"
+    assert by_rule["readme-developer-delivery"].severity == "warning"
+    assert by_rule["readme-visual-asset"].severity == "warning"
+
+
+def test_scan_accepts_public_and_developer_delivery(tmp_path: Path) -> None:
+    _write_required_files(tmp_path)
+
+    assert scan(tmp_path) == []
 
 
 def test_scan_detects_generic_secret_assignments(tmp_path: Path) -> None:
@@ -52,8 +87,10 @@ def test_scan_detects_generic_secret_assignments(tmp_path: Path) -> None:
 
 def test_scan_ignores_secret_labels_and_placeholders(tmp_path: Path) -> None:
     _write_required_files(tmp_path)
-    (tmp_path / "README.md").write_text(
-        "Document SECRET_TOKEN and API_KEY names.\n"
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        readme.read_text(encoding="utf-8")
+        + "\nDocument SECRET_TOKEN and API_KEY names.\n"
         "api_key: YOUR_" + "API_KEY_HERE\n"
         "token: example-" + "token-placeholder\n"
         "password: <redacted>\n",

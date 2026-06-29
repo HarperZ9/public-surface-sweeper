@@ -5,8 +5,9 @@
 > Check a repository's public surface before publishing or asking for trust.
 
 Public Surface Sweeper is a pre-release hygiene CLI for required files,
-public-facing text, and secret-shaped values. It can also emit proof-surface
-packets so release checks can feed the larger evidence workflow.
+public-facing text, secret-shaped values, and README delivery quality. It can
+also emit proof-surface packets so release checks can feed the larger evidence
+workflow.
 
 ## Why it matters
 
@@ -30,8 +31,9 @@ python -m pytest
 
 ## Current status
 
-Python package and CLI. It checks public repo hygiene and secret-shaped values;
-it is not a full security scanner.
+Python package and CLI. It checks public repo hygiene, secret-shaped values,
+and whether the README has both public and developer entry points; it is not a
+full security scanner.
 
 ## Existing technical notes
 
@@ -54,6 +56,8 @@ or certification tool.
 ```bash
 python -m pip install public-surface-sweeper
 ```
+
+## For developers
 
 For local development:
 
@@ -106,6 +110,13 @@ Text hygiene:
 
 - em dash characters in public-facing text
 
+README delivery:
+
+- public value, status, or use-case section
+- developer entry point and workflow section
+- runnable command block
+- substantive non-badge visual asset
+
 Secret-shaped values:
 
 - private key block markers
@@ -121,6 +132,8 @@ The scanner skips common cache, build, virtualenv, and dependency directories.
 It also skips binary files and text files larger than 1 MB.
 Secret-shaped labels and placeholders such as `YOUR_API_KEY_HERE`, `redacted`,
 or `example-token-placeholder` are ignored so findings stay value-focused.
+Delivery findings are warning-level by default so existing repos can be migrated
+without blocking secret and required-file gates.
 
 ## Example text output
 
@@ -192,6 +205,6 @@ Its job is to catch basic public-surface defects before a repository asks users,
 clients, employers, or reviewers to trust it.
 
 ---
-**Zain Dana Harper** — small tools with explicit edges.
+**Zain Dana Harper** - small tools with explicit edges.
 [Portfolio](https://harperz9.github.io) · [HarperZ9](https://github.com/HarperZ9)
 <sub>Built with Claude Code; reviewed, tested, and owned by me.</sub>

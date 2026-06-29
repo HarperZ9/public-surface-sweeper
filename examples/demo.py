@@ -3,7 +3,8 @@
 End-to-end demo of the public-surface-sweeper Python API.
 
 It builds two throwaway repositories in a temp directory:
-  1. a clean repo with all required files, and
+  1. a clean repo with all required files, public/developer README delivery,
+     and a substantive visual asset, and
   2. a "dirty" repo missing files and containing an em dash plus a
      GitHub-token-shaped value,
 then runs scan / summarize / format / proof-packet on each.
@@ -29,14 +30,28 @@ from public_surface_sweeper.sweeper import (
     summarize_findings,
 )
 
-REQUIRED_FILES = ("README.md", "LICENSE", "AUTHORS.md", "CONTRIBUTING.md")
-EM_DASH = "—"
+EM_DASH = chr(0x2014)
 # Token-shaped string assembled at runtime so this file itself stays clean.
 FAKE_GITHUB_TOKEN = "ghp_" + "ABCdef1234567890ABCdef1234567890zz"
 
 
 def build_clean_repo(root: Path) -> None:
-    for name in REQUIRED_FILES:
+    brand_dir = root / "docs" / "brand"
+    brand_dir.mkdir(parents=True)
+    (brand_dir / "demo-hero.png").write_bytes(b"fake image")
+    (root / "README.md").write_text(
+        "# Demo\n\n"
+        "![Demo hero](docs/brand/demo-hero.png)\n\n"
+        "> A clear public description for a useful tool.\n\n"
+        "## Why it matters\n\n"
+        "This explains the public value.\n\n"
+        "## Try it\n\n"
+        "```bash\npython -m demo\n```\n\n"
+        "## For developers\n\n"
+        "```bash\npython -m pytest\n```\n",
+        encoding="utf-8",
+    )
+    for name in ("LICENSE", "AUTHORS.md", "CONTRIBUTING.md"):
         (root / name).write_text("ok\n", encoding="utf-8")
 
 

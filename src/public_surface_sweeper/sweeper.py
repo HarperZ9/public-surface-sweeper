@@ -89,6 +89,42 @@ PLACEHOLDER_MARKERS = (
     "test",
     "your",
 )
+PUBLIC_DELIVERY_HEADINGS = (
+    "why it matters",
+    "what it does",
+    "overview",
+    "use cases",
+    "current status",
+    "who it is for",
+    "who it's for",
+)
+DEVELOPER_ENTRY_HEADINGS = (
+    "install",
+    "installation",
+    "quickstart",
+    "try it",
+    "usage",
+)
+DEVELOPER_WORK_HEADINGS = (
+    "api",
+    "contributing",
+    "development",
+    "for developers",
+    "testing",
+)
+SUBSTANTIVE_IMAGE_EXTENSIONS = (".gif", ".jpg", ".jpeg", ".png", ".svg", ".webp")
+BADGE_IMAGE_MARKERS = (
+    "badge",
+    "badgen.net",
+    "ci",
+    "license",
+    "shield",
+    "shields.io",
+    "version",
+)
+MARKDOWN_IMAGE_PATTERN = re.compile(
+    r"!\[(?P<alt>[^\]]*)\]\((?P<target>[^)\s]+)(?:\s+\"[^\"]*\")?\)"
+)
 
 
 @dataclass(frozen=True)
@@ -158,6 +194,91 @@ def _required_file_findings(root: Path) -> list[Finding]:
     return findings
 
 
+def _readme_delivery_findings(root: Path) -> list[Finding]:
+    path = root / "README.md"
+    text = _read_text(path)
+    if text is None:
+        return []
+
+    findings: list[Finding] = []
+    if not _has_any_heading(text, PUBLIC_DELIVERY_HEADINGS):
+        findings.append(
+            Finding(
+                path="README.md",
+                line=0,
+                rule="readme-public-delivery",
+                severity="warning",
+                message="README should explain the public value, status, or use case",
+            )
+        )
+
+    has_entry = _has_any_heading(text, DEVELOPER_ENTRY_HEADINGS)
+    has_workflow = _has_any_heading(text, DEVELOPER_WORK_HEADINGS)
+    has_command = "```" in text and _looks_like_command_block(text)
+    if not (has_entry and has_workflow and has_command):
+        findings.append(
+            Finding(
+                path="README.md",
+                line=0,
+                rule="readme-developer-delivery",
+                severity="warning",
+                message="README should include developer entry points, workflow notes, and runnable commands",
+            )
+        )
+
+    if not _has_substantive_readme_image(root, text):
+        findings.append(
+            Finding(
+                path="README.md",
+                line=0,
+                rule="readme-visual-asset",
+                severity="warning",
+                message="README should include a substantive non-badge visual asset",
+            )
+        )
+    return findings
+
+
+def _has_any_heading(text: str, terms: tuple[str, ...]) -> bool:
+    headings = [
+        match.group("heading").strip().lower()
+        for match in re.finditer(r"^#{1,4}\s+(?P<heading>.+?)\s*$", text, re.MULTILINE)
+    ]
+    return any(any(term in heading for term in terms) for heading in headings)
+
+
+def _looks_like_command_block(text: str) -> bool:
+    command_block_pattern = (
+        r"```(?:bash|console|powershell|ps1|shell|sh|text)?\s*\n(.*?)```"
+    )
+    command_word_pattern = (
+        r"\b(python|pip|pytest|npm|pnpm|node|cargo|cmake|make|git|"
+        r"public-surface-sweeper)\b"
+    )
+    for block in re.findall(command_block_pattern, text, re.DOTALL | re.IGNORECASE):
+        if re.search(command_word_pattern, block):
+            return True
+    return False
+
+
+def _has_substantive_readme_image(root: Path, text: str) -> bool:
+    for match in MARKDOWN_IMAGE_PATTERN.finditer(text):
+        alt = match.group("alt").lower()
+        target = match.group("target").strip("<>").split("#", 1)[0].split("?", 1)[0]
+        lowered_target = target.lower()
+        if any(marker in alt or marker in lowered_target for marker in BADGE_IMAGE_MARKERS):
+            continue
+        if lowered_target.startswith(("http://", "https://")):
+            if lowered_target.endswith(SUBSTANTIVE_IMAGE_EXTENSIONS):
+                return True
+            continue
+        if not lowered_target.endswith(SUBSTANTIVE_IMAGE_EXTENSIONS):
+            continue
+        if (root / target).is_file():
+            return True
+    return False
+
+
 def _text_findings(root: Path, path: Path, text: str) -> list[Finding]:
     rel_path = _relative(path, root)
     findings: list[Finding] = []
@@ -222,6 +343,7 @@ def _is_placeholder_value(value: str) -> bool:
 def scan(root: Path) -> list[Finding]:
     root = root.resolve()
     findings = _required_file_findings(root)
+    findings.extend(_readme_delivery_findings(root))
     for path in _iter_files(root):
         text = _read_text(path)
         if text is not None:
@@ -285,6 +407,7 @@ def proof_surface_packet(root: Path, findings: list[Finding]) -> dict[str, Any]:
     required_gaps = sum(1 for item in findings if item.rule == "required-file")
     secret_hits = sum(1 for item in findings if item.rule in _secret_rules())
     punctuation_hits = sum(1 for item in findings if item.rule == "em-dash")
+    delivery_hits = sum(1 for item in findings if item.rule.startswith("readme-"))
     return {
         "proof_surface_version": "0.1",
         "packet_id": f"public-surface-sweeper-{root.resolve().name}",
@@ -302,6 +425,10 @@ def proof_surface_packet(root: Path, findings: list[Finding]) -> dict[str, Any]:
             {
                 "claim": "Public text hygiene is checkable.",
                 "evidence": f"em-dash findings={punctuation_hits}",
+            },
+            {
+                "claim": "Public and developer delivery are inspectable.",
+                "evidence": f"readme delivery findings={delivery_hits}",
             },
         ],
         "checks": [
