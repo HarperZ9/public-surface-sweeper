@@ -1,5 +1,40 @@
 # Public Surface Sweeper
 
+![Public Surface Sweeper hero](docs/brand/public-surface-sweeper-hero.png)
+
+> Check a repository's public surface before publishing or asking for trust.
+
+Public Surface Sweeper is a pre-release hygiene CLI for required files,
+public-facing text, and secret-shaped values. It can also emit proof-surface
+packets so release checks can feed the larger evidence workflow.
+
+## Why it matters
+
+Small public repos often fail on simple delivery details: missing license,
+unclear README, accidental credential-shaped strings, or unreviewed release
+claims. This tool makes those checks quick and repeatable.
+
+## Try it
+
+```bash
+python -m pip install -e ".[test]"
+public-surface-sweeper examples/clean-repo
+python -m pytest
+```
+
+## What to test first
+
+- Run the clean fixture and expect `No findings.`
+- Run `public-surface-sweeper . --summary`.
+- Emit a proof packet with `--proof-packet`.
+
+## Current status
+
+Python package and CLI. It checks public repo hygiene and secret-shaped values;
+it is not a full security scanner.
+
+## Existing technical notes
+
 > Pre-release repo-hygiene CLI: required-file checks and secret-shape detection. Hygiene, not a vuln scanner.
 
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
