@@ -60,6 +60,17 @@ def test_discovers_only_github_facing_repositories(tmp_path: Path) -> None:
     assert [repo.name for repo in repos] == ["public-tool"]
 
 
+def test_discovery_deduplicates_multiple_clones_of_same_remote(tmp_path: Path) -> None:
+    canonical_repo = tmp_path / "ready-tool"
+    mirror_repo = tmp_path / "pubscan" / "ready-tool"
+    _write_git_config(canonical_repo, "https://github.com/HarperZ9/ready-tool.git")
+    _write_git_config(mirror_repo, "https://github.com/HarperZ9/ready-tool.git")
+
+    repos = discover_forward_facing_repos([tmp_path])
+
+    assert repos == [canonical_repo]
+
+
 def test_delivery_matrix_splits_public_and_developer_verdicts(tmp_path: Path) -> None:
     ready_repo = tmp_path / "ready-tool"
     drift_repo = tmp_path / "drift-tool"

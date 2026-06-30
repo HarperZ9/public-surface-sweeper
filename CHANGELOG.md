@@ -14,6 +14,8 @@
 - Adds workspace delivery matrix mode for scanning every local GitHub-facing
   repository under a workspace root with separate public, developer, and
   boundary verdicts.
+- Deduplicates multiple local checkouts of the same GitHub remote so portfolio
+  delivery counts track repositories rather than mirrors.
 
 ## v0.1.1 - 2026-06-14
 

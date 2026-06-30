@@ -44,16 +44,16 @@ SECRET_RULE_PREFIXES = (
 
 
 def discover_forward_facing_repos(roots: Iterable[Path]) -> list[Path]:
-    repos: list[Path] = []
-    seen: set[Path] = set()
+    repos_by_remote: dict[str, Path] = {}
     for root in roots:
         for repo in _iter_git_repos(Path(root)):
-            resolved = repo.resolve()
-            if resolved in seen or github_remote_slug(repo) is None:
+            slug = github_remote_slug(repo)
+            if slug is None:
                 continue
-            repos.append(repo)
-            seen.add(resolved)
-    return sorted(repos, key=lambda path: path.name.lower())
+            current = repos_by_remote.get(slug)
+            if current is None or _repo_rank(repo) < _repo_rank(current):
+                repos_by_remote[slug] = repo
+    return sorted(repos_by_remote.values(), key=lambda path: path.name.lower())
 
 
 def build_delivery_matrix(roots: Iterable[Path]) -> dict[str, Any]:
@@ -220,6 +220,12 @@ def _github_slug_from_url(url: str) -> str | None:
         if match:
             return match.group("slug")
     return None
+
+
+def _repo_rank(path: Path) -> tuple[int, int, str]:
+    parts = {part.lower() for part in path.parts}
+    mirror_penalty = 1 if "pubscan" in parts else 0
+    return (mirror_penalty, len(path.parts), path.as_posix().lower())
 
 
 def _format_repo_lines(repo: dict[str, Any]) -> list[str]:
