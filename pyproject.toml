@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "public-surface-sweeper"
-version = "0.1.1"
-description = "Pre-release repo-hygiene CLI: required-file checks and secret-shape detection. Hygiene, not a vuln scanner."
+version = "0.1.2"
+description = "Audit public and developer delivery surfaces for GitHub-facing repositories before release."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

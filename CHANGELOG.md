@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Expands the scanner into a two-audience forward-facing delivery contract:
+  public clarity/status/funding surfaces and developer handoff/usage/CI
+  surfaces.
+- Adds normalized rules for `public-changelog`, `public-funding`,
+  `developer-agent-instructions`, `developer-usage-doc`, and
+  `developer-ci-workflow`.
+- Splits the scanner internals into focused modules for models, file IO,
+  README delivery, text hygiene, summaries, proof packets, and delivery
+  contract checks.
+- Updates the clean fixture so command examples exercise the full contract.
+- Makes workspace mode traverse local-only wrapper repos and use fast
+  delivery-surface scans, so large dependency/source trees do not dominate
+  portfolio rollout checks.
 - Adds value-focused generic credential-assignment detection for token, API key,
   client secret, and password fields.
 - Keeps placeholders and secret-shaped labels out of findings so release gates
