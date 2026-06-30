@@ -78,6 +78,7 @@ public-surface-sweeper . --summary
 public-surface-sweeper . --summary --json
 public-surface-sweeper . --proof-packet
 public-surface-sweeper . --fail-on warning
+public-surface-sweeper C:/dev/public --workspace --json
 ```
 
 The command exits with status `1` when error-level findings are present.
@@ -96,6 +97,19 @@ Expected output:
 ```text
 No findings.
 ```
+
+Scan every GitHub-facing repository under a workspace root:
+
+```bash
+public-surface-sweeper C:/dev/public --workspace
+```
+
+Workspace mode discovers local repositories with GitHub remotes, runs the
+single-repo sweep against each one, and emits a delivery matrix with separate
+public, developer, and boundary verdicts. The matrix is public-safe by default:
+it includes repository names, GitHub slugs, relative paths, scores, counts, and
+action items, but not absolute local paths, raw secret values, network calls, or
+filesystem writes.
 
 ## What it checks
 
@@ -117,6 +131,13 @@ README delivery:
 - runnable command block
 - substantive non-badge visual asset
 
+Workspace delivery:
+
+- GitHub-facing repository discovery from local `.git/config` remotes
+- public/developer delivery verdicts per repository
+- release-readiness counts across a whole local portfolio
+- JSON output suitable for receipt chains and dashboard ingestion
+
 Secret-shaped values:
 
 - private key block markers
@@ -128,7 +149,8 @@ Secret-shaped values:
   `client_secret=<value>`, and `password=<value>` when the value is not an
   obvious placeholder
 
-The scanner skips common cache, build, virtualenv, and dependency directories.
+The scanner skips common cache, build, virtualenv, dependency, and local
+agent-tool state directories such as `.superpowers` and `.telos`.
 It also skips binary files and text files larger than 1 MB.
 Secret-shaped labels and placeholders such as `YOUR_API_KEY_HERE`, `redacted`,
 or `example-token-placeholder` are ignored so findings stay value-focused.

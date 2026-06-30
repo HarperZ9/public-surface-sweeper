@@ -11,6 +11,9 @@
 - Includes README delivery evidence in proof-surface packet claims.
 - Recognizes centered HTML `<img src="...">` README hero images as
   substantive visual assets when the referenced file exists.
+- Adds workspace delivery matrix mode for scanning every local GitHub-facing
+  repository under a workspace root with separate public, developer, and
+  boundary verdicts.
 
 ## v0.1.1 - 2026-06-14
 

@@ -29,7 +29,7 @@ The console script is `public-surface-sweeper`. You can also invoke it as a
 module with `python -m public_surface_sweeper`.
 
 ```
-public-surface-sweeper [ROOT] [--json] [--summary] [--proof-packet] [--fail-on {none,warning,error}]
+public-surface-sweeper [ROOT] [--json] [--summary] [--proof-packet] [--workspace] [--fail-on {none,warning,error}]
 ```
 
 - `ROOT` - repository root to scan. Optional; defaults to `.`.
@@ -37,12 +37,21 @@ public-surface-sweeper [ROOT] [--json] [--summary] [--proof-packet] [--fail-on {
 - `--summary` - print a release-readiness summary instead of individual findings.
 - `--summary --json` - print the summary as a JSON object.
 - `--proof-packet` - print a proof-surface interop packet as JSON.
+- `--workspace` - discover GitHub-facing repos under `ROOT` and print a
+  delivery matrix.
 - `--fail-on {none,warning,error}` - minimum severity that returns a failing
   exit code. Default is `error`.
 
 The process exits `1` when findings at or above the `--fail-on` threshold are
 present, otherwise `0`. Required-file, punctuation, and secret-shaped findings
 are errors. README delivery findings are warnings.
+
+In workspace mode, the process exits `1` when any repository is `DRIFT` or
+`UNVERIFIABLE`, otherwise `0`. Workspace mode reads local `.git/config` files
+to identify GitHub remotes. It does not call the network, validate
+credentials, include absolute paths, or write files.
+Local agent-tool state such as `.superpowers` and `.telos` is excluded from
+the scan so generated planning receipts do not drown out the public surface.
 
 ## Python API
 
@@ -67,6 +76,20 @@ packet = proof_surface_packet(Path("."), findings)  # dict (proof-surface shape)
 `path`, `line`, `rule`, `severity`, and `message`. `summarize_findings`
 returns a `SweepSummary` with `score`, `status`, `total_findings`, `errors`,
 `warnings`, and `action_items`.
+
+Workspace delivery matrix:
+
+```python
+from pathlib import Path
+from public_surface_sweeper.workspace import (
+    build_delivery_matrix,
+    discover_forward_facing_repos,
+)
+
+repos = discover_forward_facing_repos([Path("C:/dev/public")])
+matrix = build_delivery_matrix([Path("C:/dev/public")])
+print(matrix["counts"])
+```
 
 ## Worked examples
 
@@ -199,11 +222,62 @@ Expected output (for the problem repo above):
 The generated packet is self-validated before printing. If validation fails,
 the command writes an error to stderr and exits `1`.
 
+### 5. Workspace delivery matrix
+
+```bash
+public-surface-sweeper C:/dev/public --workspace --json
+```
+
+Expected output shape:
+
+```json
+{
+  "schema": "public-surface-sweeper.delivery-matrix/v1",
+  "repository_count": 2,
+  "counts": {
+    "MATCH": 1,
+    "DRIFT": 1,
+    "UNVERIFIABLE": 0
+  },
+  "privacy_boundary": {
+    "absolute_paths_included": false,
+    "raw_secret_values_included": false,
+    "network_calls_performed": false,
+    "filesystem_writes_performed": false
+  },
+  "repositories": [
+    {
+      "name": "ready-tool",
+      "path": "ready-tool",
+      "remote": "HarperZ9/ready-tool",
+      "status": "MATCH",
+      "score": 100,
+      "public_delivery": "MATCH",
+      "developer_delivery": "MATCH",
+      "boundary": "MATCH",
+      "findings": {
+        "total": 0,
+        "errors": 0,
+        "warnings": 0,
+        "rules": {},
+        "action_items": []
+      }
+    }
+  ]
+}
+```
+
+The `public_delivery` verdict covers public value, required release files,
+README visual assets, and public text hygiene. The `developer_delivery` verdict
+covers developer entry points, workflow notes, and runnable commands. The
+`boundary` verdict covers secret-shaped values.
+
 ## Exit codes
 
 - `0` - no findings at or above the `--fail-on` threshold.
 - `1` - findings at or above the threshold, or a proof-packet that failed
-  internal validation.
+  internal validation. In workspace mode, this also means at least one
+  repository is `DRIFT` or `UNVERIFIABLE`.
 
 Use `--fail-on none` to print findings without failing the process (useful in
 report-only mode), or `--fail-on warning` to also fail on warnings.
