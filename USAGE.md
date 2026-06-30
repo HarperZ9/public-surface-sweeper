@@ -48,8 +48,9 @@ are errors. README delivery findings are warnings.
 
 In workspace mode, the process exits `1` when any repository is `DRIFT` or
 `UNVERIFIABLE`, otherwise `0`. Workspace mode reads local `.git/config` files
-to identify GitHub remotes. It does not call the network, validate
-credentials, include absolute paths, or write files.
+to identify GitHub remotes, then deduplicates multiple local checkouts of the
+same remote. It does not call the network, validate credentials, include
+absolute paths, or write files.
 Local agent-tool state such as `.superpowers` and `.telos` is excluded from
 the scan so generated planning receipts do not drown out the public surface.
 

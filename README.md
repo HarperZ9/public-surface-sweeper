@@ -104,12 +104,12 @@ Scan every GitHub-facing repository under a workspace root:
 public-surface-sweeper C:/dev/public --workspace
 ```
 
-Workspace mode discovers local repositories with GitHub remotes, runs the
-single-repo sweep against each one, and emits a delivery matrix with separate
-public, developer, and boundary verdicts. The matrix is public-safe by default:
-it includes repository names, GitHub slugs, relative paths, scores, counts, and
-action items, but not absolute local paths, raw secret values, network calls, or
-filesystem writes.
+Workspace mode discovers local repositories with GitHub remotes, deduplicates
+multiple checkouts of the same remote, runs the single-repo sweep against each
+one, and emits a delivery matrix with separate public, developer, and boundary
+verdicts. The matrix is public-safe by default: it includes repository names,
+GitHub slugs, relative paths, scores, counts, and action items, but not absolute
+local paths, raw secret values, network calls, or filesystem writes.
 
 ## What it checks
 
@@ -134,6 +134,7 @@ README delivery:
 Workspace delivery:
 
 - GitHub-facing repository discovery from local `.git/config` remotes
+- duplicate-checkout deduplication by GitHub remote
 - public/developer delivery verdicts per repository
 - release-readiness counts across a whole local portfolio
 - JSON output suitable for receipt chains and dashboard ingestion
