@@ -113,15 +113,13 @@ DEVELOPER_WORK_HEADINGS = (
     "testing",
 )
 SUBSTANTIVE_IMAGE_EXTENSIONS = (".gif", ".jpg", ".jpeg", ".png", ".svg", ".webp")
-BADGE_IMAGE_MARKERS = (
+BADGE_ALT_MARKERS = (
     "badge",
-    "badgen.net",
     "ci",
     "license",
-    "shield",
-    "shields.io",
     "version",
 )
+BADGE_TARGET_MARKERS = ("badge", "badgen.net", "shields.io")
 MARKDOWN_IMAGE_PATTERN = re.compile(
     r"!\[(?P<alt>[^\]]*)\]\((?P<target>[^)\s]+)(?:\s+\"[^\"]*\")?\)"
 )
@@ -281,7 +279,9 @@ def _has_substantive_readme_image(root: Path, text: str) -> bool:
 def _is_substantive_image_target(root: Path, target: str, alt: str = "") -> bool:
     lowered_target = target.lower()
     lowered_alt = alt.lower()
-    if any(marker in lowered_alt or marker in lowered_target for marker in BADGE_IMAGE_MARKERS):
+    if any(marker in lowered_alt for marker in BADGE_ALT_MARKERS):
+        return False
+    if any(marker in lowered_target for marker in BADGE_TARGET_MARKERS):
         return False
     if lowered_target.startswith(("http://", "https://")):
         return lowered_target.endswith(SUBSTANTIVE_IMAGE_EXTENSIONS)
