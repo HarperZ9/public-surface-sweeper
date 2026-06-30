@@ -1,8 +1,9 @@
 # Usage Guide
 
-`public-surface-sweeper` is a pre-release repo-hygiene CLI. It checks for
-required project files, em dash characters in public-facing text,
-secret-shaped values, and README delivery quality. It is a hygiene gate, not a
+`public-surface-sweeper` audits public and developer delivery surfaces for
+GitHub-facing repositories. It checks required project files, public-facing
+text, README clarity, release/status metadata, developer handoff material,
+workflow evidence, and secret-shaped values. It is a delivery gate, not a
 vulnerability scanner.
 
 This guide covers the real CLI and the importable Python API. Every flag,
@@ -44,13 +45,15 @@ public-surface-sweeper [ROOT] [--json] [--summary] [--proof-packet] [--workspace
 
 The process exits `1` when findings at or above the `--fail-on` threshold are
 present, otherwise `0`. Required-file, punctuation, and secret-shaped findings
-are errors. README delivery findings are warnings.
+are errors. README and forward-facing delivery contract findings are warnings.
 
 In workspace mode, the process exits `1` when any repository is `DRIFT` or
 `UNVERIFIABLE`, otherwise `0`. Workspace mode reads local `.git/config` files
 to identify GitHub remotes, then deduplicates multiple local checkouts of the
-same remote. It does not call the network, validate credentials, include
-absolute paths, or write files.
+same remote. It traverses local-only wrapper repositories so nested GitHub
+repos are still found, then scans each repository's forward-facing delivery
+surface instead of its full source tree. It does not call the network, validate
+credentials, include absolute paths, or write files.
 Local agent-tool state such as `.superpowers` and `.telos` is excluded from
 the scan so generated planning receipts do not drown out the public surface.
 
@@ -201,7 +204,7 @@ Expected output (for the problem repo above):
     },
     {
       "claim": "Public and developer delivery are inspectable.",
-      "evidence": "readme delivery findings=0"
+      "evidence": "delivery findings=0"
     }
   ],
   "checks": [
@@ -269,9 +272,12 @@ Expected output shape:
 ```
 
 The `public_delivery` verdict covers public value, required release files,
-README visual assets, and public text hygiene. The `developer_delivery` verdict
-covers developer entry points, workflow notes, and runnable commands. The
-`boundary` verdict covers secret-shaped values.
+README visual assets, public text hygiene, changelog or release notes, and
+funding metadata. The `developer_delivery` verdict covers developer entry
+points, workflow notes, runnable commands, agent instructions, standalone usage
+docs, and CI/workflow evidence. The `boundary` verdict covers secret-shaped
+values in the delivery surface. Use normal single-repo mode when you need a
+full source-tree secret-shaped value sweep.
 
 ## Exit codes
 

@@ -3,10 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from proof_surface.packet import validate_packet
-from public_surface_sweeper.sweeper import format_text, scan
+from public_surface_sweeper.sweeper import format_text, scan, scan_delivery_surface
 
 
-def _write_required_files(root: Path) -> None:
+def _write_required_files(root: Path, include_delivery_contract: bool = True) -> None:
     brand_dir = root / "docs" / "brand"
     brand_dir.mkdir(parents=True)
     (brand_dir / "demo-hero.png").write_bytes(b"fake image")
@@ -25,13 +25,29 @@ def _write_required_files(root: Path) -> None:
     )
     for name in ("LICENSE", "AUTHORS.md", "CONTRIBUTING.md"):
         (root / name).write_text("ok\n", encoding="utf-8")
+    if include_delivery_contract:
+        (root / "AGENTS.md").write_text("# Agent Instructions\n\nRun tests first.\n", encoding="utf-8")
+        (root / "USAGE.md").write_text("# Usage\n\nInstall and run the CLI.\n", encoding="utf-8")
+        (root / "CHANGELOG.md").write_text("# Changelog\n\n## Unreleased\n\n- Current.\n", encoding="utf-8")
+        workflow_dir = root / ".github" / "workflows"
+        workflow_dir.mkdir(parents=True)
+        (root / ".github" / "FUNDING.yml").write_text("github: HarperZ9\n", encoding="utf-8")
+        (workflow_dir / "ci.yml").write_text(
+            "name: CI\n\non: [push, pull_request]\n\njobs:\n"
+            "  test:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - uses: actions/checkout@v5\n"
+            "      - run: python -m pytest\n",
+            encoding="utf-8",
+        )
 
 
 def test_scan_reports_missing_required_files(tmp_path: Path) -> None:
     findings = scan(tmp_path)
     rules = {item.rule for item in findings}
     assert "required-file" in rules
-    assert len(findings) == 4
+    assert sum(1 for item in findings if item.rule == "required-file") == 4
 
 
 def test_scan_detects_public_surface_findings(tmp_path: Path) -> None:
@@ -60,6 +76,19 @@ def test_scan_warns_when_delivery_sections_are_missing(tmp_path: Path) -> None:
     assert by_rule["readme-public-delivery"].severity == "warning"
     assert by_rule["readme-developer-delivery"].severity == "warning"
     assert by_rule["readme-visual-asset"].severity == "warning"
+
+
+def test_scan_warns_when_forward_delivery_contract_is_missing(tmp_path: Path) -> None:
+    _write_required_files(tmp_path, include_delivery_contract=False)
+
+    findings = scan(tmp_path)
+
+    by_rule = {item.rule: item for item in findings}
+    assert by_rule["public-changelog"].severity == "warning"
+    assert by_rule["public-funding"].severity == "warning"
+    assert by_rule["developer-agent-instructions"].severity == "warning"
+    assert by_rule["developer-usage-doc"].severity == "warning"
+    assert by_rule["developer-ci-workflow"].severity == "warning"
 
 
 def test_scan_accepts_public_and_developer_delivery(tmp_path: Path) -> None:
@@ -143,6 +172,28 @@ def test_scan_ignores_local_tool_state(tmp_path: Path) -> None:
         (local_dir / "note.md").write_text(f"ignored - {token}\n", encoding="utf-8")
 
     assert scan(tmp_path) == []
+
+
+def test_scan_ignores_dependency_vendor_trees(tmp_path: Path) -> None:
+    _write_required_files(tmp_path)
+    token = "ghp_" + ("A" * 36)
+    for dirname in ("_deps", "external", "third_party", "vendor", "vcpkg"):
+        vendor_dir = tmp_path / dirname
+        vendor_dir.mkdir()
+        (vendor_dir / "fixture.txt").write_text(f"ignored - {token}\n", encoding="utf-8")
+
+    assert scan(tmp_path) == []
+
+
+def test_delivery_surface_scan_ignores_non_public_source_tree(tmp_path: Path) -> None:
+    _write_required_files(tmp_path)
+    token = "ghp_" + ("A" * 36)
+    source_dir = tmp_path / "src"
+    source_dir.mkdir()
+    (source_dir / "module.py").write_text(f"TOKEN = '{token}'\n", encoding="utf-8")
+
+    assert [item.rule for item in scan(tmp_path)] == ["github-token"]
+    assert scan_delivery_surface(tmp_path) == []
 
 
 def test_valid_proof_surface_packet_passes_validation() -> None:

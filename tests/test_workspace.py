@@ -24,7 +24,9 @@ def _write_git_config(repo: Path, remote: str) -> None:
     )
 
 
-def _write_required_files(repo: Path, readme: str) -> None:
+def _write_required_files(
+    repo: Path, readme: str, include_delivery_contract: bool = True
+) -> None:
     repo.mkdir(parents=True, exist_ok=True)
     brand_dir = repo / "docs" / "brand"
     brand_dir.mkdir(parents=True)
@@ -32,6 +34,22 @@ def _write_required_files(repo: Path, readme: str) -> None:
     (repo / "README.md").write_text(readme, encoding="utf-8")
     for name in ("LICENSE", "AUTHORS.md", "CONTRIBUTING.md"):
         (repo / name).write_text("ok\n", encoding="utf-8")
+    if include_delivery_contract:
+        (repo / "AGENTS.md").write_text("# Agent Instructions\n\nRun tests first.\n", encoding="utf-8")
+        (repo / "USAGE.md").write_text("# Usage\n\nInstall and run the CLI.\n", encoding="utf-8")
+        (repo / "CHANGELOG.md").write_text("# Changelog\n\n## Unreleased\n\n- Current.\n", encoding="utf-8")
+        workflow_dir = repo / ".github" / "workflows"
+        workflow_dir.mkdir(parents=True)
+        (repo / ".github" / "FUNDING.yml").write_text("github: HarperZ9\n", encoding="utf-8")
+        (workflow_dir / "ci.yml").write_text(
+            "name: CI\n\non: [push, pull_request]\n\njobs:\n"
+            "  test:\n"
+            "    runs-on: ubuntu-latest\n"
+            "    steps:\n"
+            "      - uses: actions/checkout@v5\n"
+            "      - run: python -m pytest\n",
+            encoding="utf-8",
+        )
 
 
 def _complete_readme() -> str:
@@ -71,6 +89,17 @@ def test_discovery_deduplicates_multiple_clones_of_same_remote(tmp_path: Path) -
     assert repos == [canonical_repo]
 
 
+def test_discovery_continues_through_local_wrapper_repositories(tmp_path: Path) -> None:
+    wrapper = tmp_path / "wrapper"
+    nested_repo = wrapper / "nested-tool"
+    _write_git_config(wrapper, "file:///tmp/wrapper")
+    _write_git_config(nested_repo, "https://github.com/HarperZ9/nested-tool.git")
+
+    repos = discover_forward_facing_repos([wrapper])
+
+    assert repos == [nested_repo]
+
+
 def test_delivery_matrix_splits_public_and_developer_verdicts(tmp_path: Path) -> None:
     ready_repo = tmp_path / "ready-tool"
     drift_repo = tmp_path / "drift-tool"
@@ -90,6 +119,27 @@ def test_delivery_matrix_splits_public_and_developer_verdicts(tmp_path: Path) ->
     assert by_name["drift-tool"]["developer_delivery"] == "DRIFT"
     assert by_name["drift-tool"]["findings"]["warnings"] == 3
     assert not any(str(tmp_path) in json.dumps(repo) for repo in matrix["repositories"])
+
+
+def test_delivery_matrix_classifies_contract_gaps_by_audience(tmp_path: Path) -> None:
+    repo = tmp_path / "contract-gap"
+    _write_git_config(repo, "https://github.com/HarperZ9/contract-gap.git")
+    _write_required_files(repo, _complete_readme(), include_delivery_contract=False)
+
+    matrix = build_delivery_matrix([tmp_path])
+
+    item = matrix["repositories"][0]
+    assert item["status"] == "DRIFT"
+    assert item["public_delivery"] == "DRIFT"
+    assert item["developer_delivery"] == "DRIFT"
+    assert item["boundary"] == "MATCH"
+    assert item["findings"]["rules"] == {
+        "developer-agent-instructions": 1,
+        "developer-ci-workflow": 1,
+        "developer-usage-doc": 1,
+        "public-changelog": 1,
+        "public-funding": 1,
+    }
 
 
 def test_cli_emits_workspace_matrix_json(tmp_path: Path) -> None:

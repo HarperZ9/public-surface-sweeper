@@ -4,10 +4,10 @@
 
 > Check a repository's public surface before publishing or asking for trust.
 
-Public Surface Sweeper is a pre-release hygiene CLI for required files,
-public-facing text, secret-shaped values, and README delivery quality. It can
-also emit proof-surface packets so release checks can feed the larger evidence
-workflow.
+Public Surface Sweeper audits public and developer delivery surfaces for
+GitHub-facing repositories. It checks whether a repo explains itself clearly,
+has runnable handoff material, carries release/status metadata, avoids
+secret-shaped values, and can feed proof-surface evidence workflows.
 
 ## Why it matters
 
@@ -31,17 +31,17 @@ python -m pytest
 
 ## Current status
 
-Python package and CLI. It checks public repo hygiene, secret-shaped values,
-and whether the README has both public and developer entry points; it is not a
-full security scanner.
+Python package and CLI. It checks public clarity, developer handoff material,
+workspace-scale delivery drift, and secret-shaped values; it is not a full
+security scanner or certification tool.
 
 ## Existing technical notes
 
-> Pre-release repo-hygiene CLI: required-file checks and secret-shape detection. Hygiene, not a vuln scanner.
+> Audit public and developer delivery surfaces before a repository asks for trust.
 
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
-![version](https://img.shields.io/badge/version-0.1.1-informational.svg)
+![version](https://img.shields.io/badge/version-0.1.2-informational.svg)
 [![CI](https://github.com/HarperZ9/public-surface-sweeper/actions/workflows/ci.yml/badge.svg)](https://github.com/HarperZ9/public-surface-sweeper/actions/workflows/ci.yml)
 [![part of: AI-accountability toolkit](https://img.shields.io/badge/part_of-AI--accountability_toolkit-7a5cff.svg)](https://harperz9.github.io)
 
@@ -106,10 +106,11 @@ public-surface-sweeper C:/dev/public --workspace
 
 Workspace mode discovers local repositories with GitHub remotes, deduplicates
 multiple checkouts of the same remote, runs the single-repo sweep against each
-one, and emits a delivery matrix with separate public, developer, and boundary
-verdicts. The matrix is public-safe by default: it includes repository names,
-GitHub slugs, relative paths, scores, counts, and action items, but not absolute
-local paths, raw secret values, network calls, or filesystem writes.
+one's forward-facing delivery surface, and emits a delivery matrix with
+separate public, developer, and boundary verdicts. The matrix is public-safe by
+default: it includes repository names, GitHub slugs, relative paths, scores,
+counts, and action items, but not absolute local paths, raw secret values,
+network calls, or filesystem writes.
 
 ## What it checks
 
@@ -131,11 +132,22 @@ README delivery:
 - runnable command block
 - substantive non-badge visual asset
 
+Forward-facing repository delivery:
+
+- changelog or release notes for public status
+- GitHub funding metadata for sponsor-button support
+- `AGENTS.md` or equivalent agent/developer instructions
+- standalone `USAGE.md` or docs usage guide
+- GitHub workflow evidence under `.github/workflows/`
+
 Workspace delivery:
 
 - GitHub-facing repository discovery from local `.git/config` remotes
 - duplicate-checkout deduplication by GitHub remote
+- local wrapper repository traversal for workspaces that contain nested repos
+- fast delivery-surface scanning instead of full source-tree scanning
 - public/developer delivery verdicts per repository
+- normalized contract rules for receipt chains and dashboards
 - release-readiness counts across a whole local portfolio
 - JSON output suitable for receipt chains and dashboard ingestion
 

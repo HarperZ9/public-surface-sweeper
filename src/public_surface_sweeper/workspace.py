@@ -6,7 +6,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
 
-from .sweeper import Finding, scan, summarize_findings
+from .sweeper import Finding, scan_delivery_surface, summarize_findings
 
 WORKSPACE_SKIP_DIRS = {
     ".git",
@@ -20,19 +20,31 @@ WORKSPACE_SKIP_DIRS = {
     ".venv",
     ".vscode",
     "__pycache__",
+    "_deps",
     "build",
     "coverage",
     "dist",
+    "external",
     "node_modules",
     "target",
+    "third_party",
+    "vendor",
+    "vcpkg",
 }
 PUBLIC_DELIVERY_RULES = {
     "em-dash",
+    "public-changelog",
+    "public-funding",
     "readme-public-delivery",
     "readme-visual-asset",
     "required-file",
 }
-DEVELOPER_DELIVERY_RULES = {"readme-developer-delivery"}
+DEVELOPER_DELIVERY_RULES = {
+    "developer-agent-instructions",
+    "developer-ci-workflow",
+    "developer-usage-doc",
+    "readme-developer-delivery",
+}
 SECRET_RULE_PREFIXES = (
     "aws-access-key",
     "github-token",
@@ -115,12 +127,13 @@ def _iter_git_repos(root: Path) -> Iterable[Path]:
         git_config = current_path / ".git" / "config"
         if git_config.is_file():
             yield current_path
-            dirnames[:] = []
+            if github_remote_slug(current_path) is not None:
+                dirnames[:] = []
 
 
 def _repo_delivery_record(repo: Path, roots: list[Path]) -> dict[str, Any]:
     try:
-        findings = scan(repo)
+        findings = scan_delivery_surface(repo)
     except OSError as exc:
         return _unverifiable_record(repo, roots, str(exc))
     summary = summarize_findings(findings)
