@@ -70,10 +70,11 @@ def test_scan_accepts_public_and_developer_delivery(tmp_path: Path) -> None:
 
 def test_scan_accepts_html_readme_image(tmp_path: Path) -> None:
     _write_required_files(tmp_path)
+    (tmp_path / "docs" / "brand" / "reconcile-hero.png").write_bytes(b"fake image")
     (tmp_path / "README.md").write_text(
         "# Demo\n\n"
         '<p align="center">\n'
-        '  <img src="docs/brand/demo-hero.png" alt="Demo hero">\n'
+        '  <img src="docs/brand/reconcile-hero.png" alt="Reconcile hero">\n'
         "</p>\n\n"
         "## Why it matters\n\n"
         "This explains the public value.\n\n"
