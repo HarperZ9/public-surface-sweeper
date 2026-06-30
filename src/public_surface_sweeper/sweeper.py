@@ -15,6 +15,8 @@ SKIP_DIRS = {
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
+    ".superpowers",
+    ".telos",
     ".tox",
     ".venv",
     ".vscode",

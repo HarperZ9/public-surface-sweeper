@@ -130,7 +130,14 @@ def test_scan_ignores_binary_files(tmp_path: Path) -> None:
 def test_scan_ignores_local_tool_state(tmp_path: Path) -> None:
     _write_required_files(tmp_path)
     token = "ghp_" + ("A" * 36)
-    for dirname in (".claude", ".Codex", ".warden-safe-cache", "target"):
+    for dirname in (
+        ".claude",
+        ".Codex",
+        ".superpowers",
+        ".telos",
+        ".warden-safe-cache",
+        "target",
+    ):
         local_dir = tmp_path / dirname
         local_dir.mkdir()
         (local_dir / "note.md").write_text(f"ignored - {token}\n", encoding="utf-8")

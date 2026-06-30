@@ -17,6 +17,7 @@ from .sweeper import (
     scan,
     summarize_findings,
 )
+from .workspace import build_delivery_matrix, format_delivery_matrix
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--proof-packet",
         action="store_true",
         help="Print a proof-surface interop packet as JSON.",
+    )
+    parser.add_argument(
+        "--workspace",
+        action="store_true",
+        help="Discover GitHub-facing repos under ROOT and print a delivery matrix.",
     )
     parser.add_argument(
         "--fail-on",
@@ -54,6 +60,15 @@ def _should_fail(findings: list[Finding], fail_on: str) -> bool:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     root = Path(args.root)
+    if args.workspace:
+        matrix = build_delivery_matrix([root])
+        if args.json:
+            print(json.dumps(matrix, indent=2))
+        else:
+            print(format_delivery_matrix(matrix))
+        has_drift = matrix["counts"]["DRIFT"] or matrix["counts"]["UNVERIFIABLE"]
+        return 1 if has_drift else 0
+
     findings = scan(root)
     if args.proof_packet:
         packet = proof_surface_packet(root, findings)
