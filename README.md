@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/assets/zentropy-banner.png" alt="public-surface-sweeper" width="100%"></p>
+
 # Public Surface Sweeper
 
 ![Public Surface Sweeper hero](docs/brand/public-surface-sweeper-hero.png)
@@ -243,3 +245,7 @@ clients, employers, or reviewers to trust it.
 **Zain Dana Harper** - small tools with explicit edges.
 [Portfolio](https://harperz9.github.io) · [HarperZ9](https://github.com/HarperZ9)
 <sub>Built with Claude Code; reviewed, tested, and owned by me.</sub>
+
+---
+
+**[Zentropy Labs](https://github.com/ZentropyLabs-ai)** · order out of entropy. An independent lab building evidence-first tools that leave a re-checkable artifact behind. Built by Zain Dana Harper in Seattle. The full workbench is at [Project Telos](https://harperz9.github.io).
