@@ -10,3 +10,6 @@ build/
 dist/
 *.egg-info/
 
+
+# Local-only Claude instructions (global standard: never commit)
+CLAUDE.local.md
