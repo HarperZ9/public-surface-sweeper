@@ -1,8 +1,6 @@
-<p align="center"><img src=".github/assets/zentropy-banner.png" alt="public-surface-sweeper" width="100%"></p>
+<p align="center"><img src="docs/art/public-surface-sweeper-header.svg" alt="Public Surface Sweeper" width="100%"></p>
 
 # Public Surface Sweeper
-
-![Public Surface Sweeper hero](docs/brand/public-surface-sweeper-hero.png)
 
 > Check a repository's public surface before publishing or asking for trust.
 
@@ -116,6 +114,18 @@ network calls, or filesystem writes.
 
 ## What it checks
 
+A sweep walks one repository and applies every rule below to what it finds
+on disk. The order matters at the end, where two filters remove candidate
+findings that another rule has already accounted for.
+
+![Eight stages of a single sweep: root, skip list, readable, punctuation, required, contract, credentials, filters. The walk starts at the repository root and covers everything under it. Twenty five directory names are never entered, among them the virtual environment, the build output and the caches. A file is read only if it decodes as UTF-8, holds no null byte, and is under a megabyte. An em dash anywhere in a scanned file is an error rather than a note. Four files have to be present at the root by name. Five further rules ask whether the release surface is inspectable at all: a changelog, funding metadata, agent instructions, usage docs and a workflow. Five known credential shapes are matched by their own patterns, then a generic name-equals-value rule catches the rest. Two filters drop candidates before they are counted: a span a provider rule already claimed, and a value that reads as a placeholder. Three outcomes: ready, needs polish, and blocked.](docs/art/sweep-lane.svg)
+
+The workspace mode runs that same sweep across every GitHub-facing checkout
+under a root, then reduces each repository to three verdicts and takes the
+worst of them.
+
+![Eight stages of the workspace matrix: walk, git config, remote, duplicates, surface, public, developer, status. Every directory under the given root is walked once, skipping the same build and cache names the single sweep skips. A repository is recognised by a readable git config file. Only a remote that parses as a GitHub slug is kept, so a local-only checkout is passed over. When two checkouts share a slug the shallower path wins, and a mirror directory loses on purpose. Each surviving repository is scanned across its named files, its workflows and its docs, rather than its whole tree. Six rules decide the public verdict. Four more decide the developer verdict. The overall status is the worst of the three verdicts rather than an average of them, so one drift is enough. Three outcomes: match, drift, and unverifiable.](docs/art/matrix-lane.svg)
+
 Required project files:
 
 - `README.md`
@@ -163,6 +173,8 @@ Secret-shaped values:
 - generic credential assignments such as `token: <value>`, `api_key=<value>`,
   `client_secret=<value>`, and `password=<value>` when the value is not an
   obvious placeholder
+
+![Ten of the rules a sweep applies, one to a row, each with its severity and what it had to read. Five errors cover missing required files, an em dash, a PEM private key header, a GitHub token prefix, and an AWS access key identifier. Four warnings cover a README without a substantive image, a README without all three developer entry points, absent funding metadata, and an absent workflow file. The generic credential assignment row is accented, because it is the one rule whose match can still be dropped: by a provider rule that already claimed the same span, or by a value that reads as a placeholder.](docs/art/rule-severity.svg)
 
 The scanner skips common cache, build, virtualenv, dependency, and local
 agent-tool state directories such as `.superpowers` and `.telos`.
