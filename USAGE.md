@@ -11,8 +11,11 @@ command, and function shown here exists in the current source.
 
 ## Install
 
+Download the reviewed wheel or source archive from a GitHub Release, then
+install the local artifact:
+
 ```bash
-python -m pip install public-surface-sweeper
+python -m pip install ./public_surface_sweeper-0.1.3-py3-none-any.whl
 ```
 
 For local development from a clone:
@@ -48,12 +51,17 @@ present, otherwise `0`. Required-file, punctuation, and secret-shaped findings
 are errors. README and forward-facing delivery contract findings are warnings.
 
 In workspace mode, the process exits `1` when any repository is `DRIFT` or
-`UNVERIFIABLE`, otherwise `0`. Workspace mode reads local `.git/config` files
-to identify GitHub remotes, then deduplicates multiple local checkouts of the
-same remote. It traverses local-only wrapper repositories so nested GitHub
-repos are still found, then scans each repository's forward-facing delivery
-surface instead of its full source tree. It does not call the network, validate
-credentials, include absolute paths, or write files.
+`UNVERIFIABLE`, when Git metadata is unreadable, or when discovery is empty.
+Use `--fail-on none` for report-only workspace output. Workspace mode reads
+local Git metadata to identify GitHub remotes, including normal `.git/config`
+repositories and linked Git worktree `.git` files that validate against Git
+backpointer and common-dir metadata. Unvalidated external Git metadata and
+symlinked `.git` markers are reported as `UNVERIFIABLE` before config is read.
+It then deduplicates multiple local checkouts of the same remote. It traverses
+local-only wrapper repositories so nested GitHub repos are still found, then
+scans each repository's forward-facing delivery surface instead of its full
+source tree. It does not call the network, validate credentials, include
+absolute paths, or write files.
 Local agent-tool state such as `.superpowers` and `.telos` is excluded from
 the scan so generated planning receipts do not drown out the public surface.
 
@@ -243,6 +251,15 @@ Expected output shape:
     "DRIFT": 1,
     "UNVERIFIABLE": 0
   },
+  "workspace_status": "DRIFT",
+  "coverage": {
+    "root_count": 1,
+    "git_repository_count": 2,
+    "github_repository_count": 2,
+    "unknown_repository_count": 0,
+    "empty_reason": null,
+    "diagnostics": []
+  },
   "privacy_boundary": {
     "absolute_paths_included": false,
     "raw_secret_values_included": false,
@@ -279,12 +296,21 @@ docs, and CI/workflow evidence. The `boundary` verdict covers secret-shaped
 values in the delivery surface. Use normal single-repo mode when you need a
 full source-tree secret-shaped value sweep.
 
+If workspace discovery finds no Git repositories, the JSON contains
+`workspace_status: "EMPTY"` and `coverage.empty_reason:
+"no_git_repositories"`. If it finds only local repositories with no GitHub
+remote, the empty reason is `"no_github_repositories"`. If a `.git` file points
+to a missing, unreadable, or unvalidated Git directory, or if `.git` is a
+symlink, `workspace_status` becomes `"UNVERIFIABLE"` and
+`coverage.diagnostics` lists a relative path plus reason.
+
 ## Exit codes
 
 - `0` - no findings at or above the `--fail-on` threshold.
 - `1` - findings at or above the threshold, or a proof-packet that failed
   internal validation. In workspace mode, this also means at least one
-  repository is `DRIFT` or `UNVERIFIABLE`.
+  repository is `DRIFT` or `UNVERIFIABLE`, Git metadata is unreadable, or
+  discovery is empty.
 
 Use `--fail-on none` to print findings without failing the process (useful in
 report-only mode), or `--fail-on warning` to also fail on warnings.

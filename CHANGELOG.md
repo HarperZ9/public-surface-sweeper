@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.1.3 - 2026-09-07
+
 - Expands the scanner into a two-audience forward-facing delivery contract:
   public clarity/status/funding surfaces and developer handoff/usage/CI
   surfaces.
@@ -29,6 +31,14 @@
   boundary verdicts.
 - Deduplicates multiple local checkouts of the same GitHub remote so portfolio
   delivery counts track repositories rather than mirrors.
+- Recognizes linked Git worktree `.git` files, validates their backpointer
+  and common-dir relationship before reading config, and reports explicit
+  workspace coverage status instead of allowing an empty zero-repository matrix
+  to pass as a clean gate.
+- Rejects symlinked `.git` markers and arbitrary external `gitdir:` targets as
+  `UNVERIFIABLE` so forged metadata cannot look like a matching GitHub repo.
+- Constrains the Hatchling build backend below 1.31 so release artifacts keep
+  metadata accepted by the repository's package metadata gate.
 
 ## v0.1.1 - 2026-06-14
 

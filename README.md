@@ -41,7 +41,7 @@ security scanner or certification tool.
 
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
-![version](https://img.shields.io/badge/version-0.1.2-informational.svg)
+![version](https://img.shields.io/badge/version-0.1.3-informational.svg)
 [![CI](https://github.com/HarperZ9/public-surface-sweeper/actions/workflows/ci.yml/badge.svg)](https://github.com/HarperZ9/public-surface-sweeper/actions/workflows/ci.yml)
 [![part of: AI-accountability toolkit](https://img.shields.io/badge/part_of-AI--accountability_toolkit-7a5cff.svg)](https://harperz9.github.io)
 
@@ -53,8 +53,11 @@ or certification tool.
 
 ## Install
 
+Download the reviewed wheel or source archive from a GitHub Release, then
+install the local artifact:
+
 ```bash
-python -m pip install public-surface-sweeper
+python -m pip install ./public_surface_sweeper-0.1.3-py3-none-any.whl
 ```
 
 ## For developers
@@ -82,6 +85,9 @@ public-surface-sweeper C:/dev/public --workspace --json
 ```
 
 The command exits with status `1` when error-level findings are present.
+In workspace mode, the command also exits with status `1` when discovery is
+empty or unverifiable, so a zero-repository matrix does not pass as a clean
+portfolio gate.
 
 Use `--fail-on warning` to fail on warnings and errors, or `--fail-on none` to
 print findings without failing the process.
@@ -112,6 +118,15 @@ default: it includes repository names, GitHub slugs, relative paths, scores,
 counts, and action items, but not absolute local paths, raw secret values,
 network calls, or filesystem writes.
 
+Discovery reads local Git metadata only. It recognizes standard `.git/config`
+repositories and linked Git worktree `.git` files whose `gitdir:` pointer leads
+to a Git worktree metadata directory with a matching backpointer and common-dir
+relationship. Unvalidated external Git metadata, including symlinked `.git`
+markers, is reported as `UNVERIFIABLE` before config is read. If a workspace
+contains no Git repositories, no GitHub-facing remotes, or unreadable Git
+metadata, the matrix reports `workspace_status` and `coverage.empty_reason`
+instead of treating an empty result as success.
+
 ## What it checks
 
 A sweep walks one repository and applies every rule below to what it finds
@@ -124,7 +139,7 @@ The workspace mode runs that same sweep across every GitHub-facing checkout
 under a root, then reduces each repository to three verdicts and takes the
 worst of them.
 
-![Eight stages of the workspace matrix: walk, git config, remote, duplicates, surface, public, developer, status. Every directory under the given root is walked once, skipping the same build and cache names the single sweep skips. A repository is recognised by a readable git config file. Only a remote that parses as a GitHub slug is kept, so a local-only checkout is passed over. When two checkouts share a slug the shallower path wins, and a mirror directory loses on purpose. Each surviving repository is scanned across its named files, its workflows and its docs, rather than its whole tree. Six rules decide the public verdict. Four more decide the developer verdict. The overall status is the worst of the three verdicts rather than an average of them, so one drift is enough. Three outcomes: match, drift, and unverifiable.](docs/art/matrix-lane.svg)
+![Eight stages of the workspace matrix: walk, git metadata, remote, duplicates, surface, public, developer, status. Every directory under the given root is walked once, skipping the same build and cache names the single sweep skips. A repository is recognized by a readable Git config, either from a normal `.git` directory or a linked worktree `.git` file. Only a remote that parses as a GitHub slug is kept, so a local-only checkout is passed over with coverage recorded. When two checkouts share a slug the shallower path wins, and a mirror directory loses on purpose. Each surviving repository is scanned across its named files, its workflows and its docs, rather than its whole tree. Six rules decide the public verdict. Four more decide the developer verdict. The overall status is the worst of the three verdicts rather than an average, so one drift or unreadable metadata is enough.](docs/art/matrix-lane.svg)
 
 Required project files:
 
@@ -154,9 +169,11 @@ Forward-facing repository delivery:
 
 Workspace delivery:
 
-- GitHub-facing repository discovery from local `.git/config` remotes
+- GitHub-facing repository discovery from local `.git/config` remotes and
+  validated linked worktree `.git` files
 - duplicate-checkout deduplication by GitHub remote
 - local wrapper repository traversal for workspaces that contain nested repos
+- explicit empty and unreadable-metadata coverage in workspace matrices
 - fast delivery-surface scanning instead of full source-tree scanning
 - public/developer delivery verdicts per repository
 - normalized contract rules for receipt chains and dashboards
