@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from public_surface_sweeper.workspace import (
     build_delivery_matrix,
     discover_forward_facing_repos,
@@ -65,6 +67,40 @@ def _complete_readme() -> str:
     )
 
 
+def _run_git(cwd: Path, *args: str) -> None:
+    try:
+        subprocess.run(
+            ["git", *args],
+            cwd=cwd,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        pytest.skip("git executable is required for linked-worktree coverage")
+
+
+def _run_workspace_cli(root: Path) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    local_src = str(Path(__file__).parents[1] / "src")
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = local_src + os.pathsep + existing if existing else local_src
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "public_surface_sweeper",
+            str(root),
+            "--workspace",
+            "--json",
+        ],
+        check=False,
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+
 def test_discovers_only_github_facing_repositories(tmp_path: Path) -> None:
     public_repo = tmp_path / "public-tool"
     local_repo = tmp_path / "local-tool"
@@ -76,6 +112,45 @@ def test_discovers_only_github_facing_repositories(tmp_path: Path) -> None:
     repos = discover_forward_facing_repos([tmp_path])
 
     assert [repo.name for repo in repos] == ["public-tool"]
+
+
+def test_discovers_github_remote_from_linked_worktree_gitfile(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    workspace = tmp_path / "workspace"
+    linked_repo = workspace / "linked-tool"
+    source.mkdir()
+    _run_git(source, "init")
+    _run_git(source, "checkout", "-b", "main")
+    _write_required_files(source, _complete_readme())
+    _run_git(source, "add", ".")
+    _run_git(
+        source,
+        "-c",
+        "user.name=Public Surface Tests",
+        "-c",
+        "user.email=tests@example.invalid",
+        "commit",
+        "-m",
+        "initial fixture",
+    )
+    _run_git(
+        source,
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/HarperZ9/linked-tool.git",
+    )
+    _run_git(source, "worktree", "add", "--detach", str(linked_repo), "HEAD")
+
+    repos = discover_forward_facing_repos([workspace])
+    matrix = build_delivery_matrix([workspace])
+
+    assert (linked_repo / ".git").is_file()
+    assert repos == [linked_repo]
+    assert matrix["workspace_status"] == "MATCH"
+    assert matrix["coverage"]["git_repository_count"] == 1
+    assert matrix["coverage"]["github_repository_count"] == 1
+    assert matrix["repositories"][0]["remote"] == "HarperZ9/linked-tool"
 
 
 def test_discovery_deduplicates_multiple_clones_of_same_remote(tmp_path: Path) -> None:
@@ -98,6 +173,146 @@ def test_discovery_continues_through_local_wrapper_repositories(tmp_path: Path) 
     repos = discover_forward_facing_repos([wrapper])
 
     assert repos == [nested_repo]
+
+
+def test_delivery_matrix_reports_empty_non_git_workspace(tmp_path: Path) -> None:
+    matrix = build_delivery_matrix([tmp_path])
+
+    assert matrix["repository_count"] == 0
+    assert matrix["workspace_status"] == "EMPTY"
+    assert matrix["coverage"]["empty_reason"] == "no_git_repositories"
+    assert matrix["coverage"]["git_repository_count"] == 0
+    assert matrix["coverage"]["github_repository_count"] == 0
+    assert matrix["coverage"]["unknown_repository_count"] == 0
+    assert str(tmp_path) not in json.dumps(matrix)
+
+
+def test_delivery_matrix_reports_no_github_repositories(tmp_path: Path) -> None:
+    repo = tmp_path / "local-tool"
+    _write_git_config(repo, "file:///tmp/local-tool")
+
+    matrix = build_delivery_matrix([tmp_path])
+
+    assert matrix["repository_count"] == 0
+    assert matrix["workspace_status"] == "EMPTY"
+    assert matrix["coverage"]["empty_reason"] == "no_github_repositories"
+    assert matrix["coverage"]["git_repository_count"] == 1
+    assert matrix["coverage"]["github_repository_count"] == 0
+    assert matrix["coverage"]["unknown_repository_count"] == 0
+
+
+def test_delivery_matrix_reports_invalid_gitfile_marker(tmp_path: Path) -> None:
+    repo = tmp_path / "broken-worktree"
+    repo.mkdir()
+    (repo / ".git").write_text("gitdir: missing-git-dir\n", encoding="utf-8")
+
+    matrix = build_delivery_matrix([tmp_path])
+
+    assert matrix["repository_count"] == 0
+    assert matrix["workspace_status"] == "UNVERIFIABLE"
+    assert matrix["coverage"]["empty_reason"] == "no_readable_git_metadata"
+    assert matrix["coverage"]["git_repository_count"] == 0
+    assert matrix["coverage"]["github_repository_count"] == 0
+    assert matrix["coverage"]["unknown_repository_count"] == 1
+    assert matrix["coverage"]["diagnostics"] == [
+        {
+            "path": "broken-worktree",
+            "status": "UNVERIFIABLE",
+            "reason": "gitdir target not found",
+        }
+    ]
+    assert str(tmp_path) not in json.dumps(matrix)
+
+
+def test_delivery_matrix_rejects_external_gitdir_without_backpointer(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    repo = workspace / "forged-worktree"
+    external_git_dir = tmp_path / "external-git-dir"
+    repo.mkdir(parents=True)
+    external_git_dir.mkdir()
+    (external_git_dir / "config").write_text(
+        '[remote "origin"]\n'
+        "\turl = https://github.com/HarperZ9/forged-worktree.git\n",
+        encoding="utf-8",
+    )
+    (repo / ".git").write_text(f"gitdir: {external_git_dir}\n", encoding="utf-8")
+
+    matrix = build_delivery_matrix([workspace])
+
+    assert matrix["repository_count"] == 0
+    assert matrix["workspace_status"] == "UNVERIFIABLE"
+    assert matrix["coverage"]["diagnostics"] == [
+        {
+            "path": "forged-worktree",
+            "status": "UNVERIFIABLE",
+            "reason": "gitdir backpointer not found",
+        }
+    ]
+    assert "HarperZ9/forged-worktree" not in json.dumps(matrix)
+    assert str(external_git_dir) not in json.dumps(matrix)
+
+
+def test_delivery_matrix_rejects_external_gitdir_with_invalid_commondir(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    repo = workspace / "forged-backpointer"
+    external_git_dir = tmp_path / "external-git-dir"
+    repo.mkdir(parents=True)
+    external_git_dir.mkdir()
+    (external_git_dir / "gitdir").write_text(str(repo / ".git"), encoding="utf-8")
+    (external_git_dir / "commondir").write_text(".\n", encoding="utf-8")
+    (external_git_dir / "config").write_text(
+        '[remote "origin"]\n'
+        "\turl = https://github.com/HarperZ9/forged-backpointer.git\n",
+        encoding="utf-8",
+    )
+    (repo / ".git").write_text(f"gitdir: {external_git_dir}\n", encoding="utf-8")
+
+    matrix = build_delivery_matrix([workspace])
+
+    assert matrix["repository_count"] == 0
+    assert matrix["workspace_status"] == "UNVERIFIABLE"
+    assert matrix["coverage"]["diagnostics"] == [
+        {
+            "path": "forged-backpointer",
+            "status": "UNVERIFIABLE",
+            "reason": "gitdir is outside common worktrees directory",
+        }
+    ]
+    assert "HarperZ9/forged-backpointer" not in json.dumps(matrix)
+
+
+def test_delivery_matrix_rejects_git_directory_symlink(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    repo = workspace / "symlinked-git"
+    external_git_dir = tmp_path / "external-git-dir"
+    repo.mkdir(parents=True)
+    external_git_dir.mkdir()
+    (external_git_dir / "config").write_text(
+        '[remote "origin"]\n'
+        "\turl = https://github.com/HarperZ9/symlinked-git.git\n",
+        encoding="utf-8",
+    )
+    try:
+        (repo / ".git").symlink_to(external_git_dir, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"directory symlink unavailable: {exc}")
+
+    matrix = build_delivery_matrix([workspace])
+
+    assert matrix["repository_count"] == 0
+    assert matrix["workspace_status"] == "UNVERIFIABLE"
+    assert matrix["coverage"]["diagnostics"] == [
+        {
+            "path": "symlinked-git",
+            "status": "UNVERIFIABLE",
+            "reason": ".git directory symlink not supported",
+        }
+    ]
+    assert "HarperZ9/symlinked-git" not in json.dumps(matrix)
 
 
 def test_delivery_matrix_splits_public_and_developer_verdicts(tmp_path: Path) -> None:
@@ -146,27 +361,31 @@ def test_cli_emits_workspace_matrix_json(tmp_path: Path) -> None:
     repo = tmp_path / "ready-tool"
     _write_git_config(repo, "https://github.com/HarperZ9/ready-tool.git")
     _write_required_files(repo, _complete_readme())
-    env = os.environ.copy()
-    local_src = str(Path(__file__).parents[1] / "src")
-    existing = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = local_src + os.pathsep + existing if existing else local_src
 
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "public_surface_sweeper",
-            str(tmp_path),
-            "--workspace",
-            "--json",
-        ],
-        check=False,
-        capture_output=True,
-        env=env,
-        text=True,
-    )
+    result = _run_workspace_cli(tmp_path)
 
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     assert payload["counts"] == {"MATCH": 1, "DRIFT": 0, "UNVERIFIABLE": 0}
     assert payload["repositories"][0]["remote"] == "HarperZ9/ready-tool"
+
+
+def test_cli_fails_empty_workspace_with_json_reason(tmp_path: Path) -> None:
+    result = _run_workspace_cli(tmp_path)
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["workspace_status"] == "EMPTY"
+    assert payload["coverage"]["empty_reason"] == "no_git_repositories"
+
+
+def test_cli_fails_workspace_with_no_github_remotes(tmp_path: Path) -> None:
+    repo = tmp_path / "local-tool"
+    _write_git_config(repo, "file:///tmp/local-tool")
+
+    result = _run_workspace_cli(tmp_path)
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["workspace_status"] == "EMPTY"
+    assert payload["coverage"]["empty_reason"] == "no_github_repositories"

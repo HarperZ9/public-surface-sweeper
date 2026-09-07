@@ -66,8 +66,9 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(matrix, indent=2))
         else:
             print(format_delivery_matrix(matrix))
-        has_drift = matrix["counts"]["DRIFT"] or matrix["counts"]["UNVERIFIABLE"]
-        return 1 if has_drift else 0
+        if args.fail_on == "none":
+            return 0
+        return 1 if matrix["workspace_status"] != "MATCH" else 0
 
     findings = scan(root)
     if args.proof_packet:
