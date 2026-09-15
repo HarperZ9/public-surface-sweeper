@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 from public_surface_sweeper.workspace import (
     build_delivery_matrix,
@@ -21,6 +24,52 @@ def _write_git_config(repo: Path, remote: str) -> None:
         "[remote \"origin\"]\n"
         f"\turl = {remote}\n",
         encoding="utf-8",
+    )
+
+
+def _run_git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    if shutil.which("git") is None:
+        pytest.skip("git executable is required for linked-worktree regression tests")
+    result = subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    return result
+
+
+def _create_real_git_repo(repo: Path, remote: str) -> None:
+    repo.mkdir(parents=True)
+    _run_git(repo, "init")
+    _run_git(repo, "config", "user.email", "sweeper-tests@example.invalid")
+    _run_git(repo, "config", "user.name", "Public Surface Sweeper Tests")
+    _run_git(repo, "remote", "add", "origin", remote)
+    _write_required_files(repo, _complete_readme())
+    _run_git(repo, "add", ".")
+    _run_git(repo, "commit", "-m", "initial public surface")
+
+
+def _run_workspace_cli_json(root: Path) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    local_src = str(Path(__file__).parents[1] / "src")
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = local_src + os.pathsep + existing if existing else local_src
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "public_surface_sweeper",
+            str(root),
+            "--workspace",
+            "--json",
+        ],
+        check=False,
+        capture_output=True,
+        env=env,
+        text=True,
     )
 
 
@@ -98,6 +147,101 @@ def test_discovery_continues_through_local_wrapper_repositories(tmp_path: Path) 
     repos = discover_forward_facing_repos([wrapper])
 
     assert repos == [nested_repo]
+
+
+def test_discovery_scans_selected_linked_worktree_with_findings(tmp_path: Path) -> None:
+    source_repo = tmp_path / "source-ready-tool"
+    linked_repo = tmp_path / "selected-linked-ready-tool"
+    _create_real_git_repo(source_repo, "https://github.com/HarperZ9/ready-tool.git")
+    _run_git(source_repo, "worktree", "add", "-b", "linked-scan", str(linked_repo), "HEAD")
+    (linked_repo / "LICENSE").unlink()
+
+    repos = discover_forward_facing_repos([linked_repo])
+    matrix = build_delivery_matrix([linked_repo])
+
+    assert repos == [linked_repo]
+    assert matrix["repository_count"] == 1
+    assert matrix["counts"] == {"MATCH": 0, "DRIFT": 1, "UNVERIFIABLE": 0}
+    item = matrix["repositories"][0]
+    assert item["name"] == linked_repo.name
+    assert item["remote"] == "HarperZ9/ready-tool"
+    assert item["status"] == "DRIFT"
+    assert item["findings"]["rules"]["required-file"] == 1
+    assert not any(str(tmp_path) in json.dumps(repo) for repo in matrix["repositories"])
+
+
+@pytest.mark.parametrize(
+    "git_file",
+    [
+        "not a gitdir pointer\n",
+        "gitdir: missing-gitdir\n",
+    ],
+)
+def test_explicit_repo_with_malformed_git_metadata_is_unverifiable(
+    tmp_path: Path, git_file: str
+) -> None:
+    repo = tmp_path / "broken-tool"
+    repo.mkdir()
+    (repo / ".git").write_text(git_file, encoding="utf-8")
+
+    matrix = build_delivery_matrix([repo])
+
+    assert matrix["repository_count"] == 1
+    assert matrix["counts"] == {"MATCH": 0, "DRIFT": 0, "UNVERIFIABLE": 1}
+    item = matrix["repositories"][0]
+    assert item["name"] == repo.name
+    assert item["remote"] is None
+    assert item["status"] == "UNVERIFIABLE"
+    payload = json.dumps(matrix)
+    assert str(tmp_path) not in payload
+    assert "missing-gitdir" not in payload
+
+
+def test_empty_workspace_root_has_empty_success_shape(tmp_path: Path) -> None:
+    matrix = build_delivery_matrix([tmp_path])
+
+    assert matrix["repository_count"] == 0
+    assert matrix["counts"] == {"MATCH": 0, "DRIFT": 0, "UNVERIFIABLE": 0}
+    assert matrix["repositories"] == []
+
+
+def test_cli_reports_nul_gitdir_metadata_as_unverifiable_json(tmp_path: Path) -> None:
+    repo = tmp_path / "nul-gitdir-tool"
+    repo.mkdir()
+    (repo / ".git").write_text("gitdir: bad\x00gitdir\n", encoding="utf-8")
+
+    result = _run_workspace_cli_json(repo)
+
+    assert result.returncode == 1, result.stderr
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert payload["repository_count"] == 1
+    assert payload["counts"] == {"MATCH": 0, "DRIFT": 0, "UNVERIFIABLE": 1}
+    assert payload["repositories"][0]["status"] == "UNVERIFIABLE"
+    assert "\x00" not in result.stdout
+    assert "bad" not in result.stdout
+    assert str(tmp_path) not in result.stdout
+
+
+def test_cli_reports_nul_commondir_metadata_as_unverifiable_json(tmp_path: Path) -> None:
+    repo = tmp_path / "nul-commondir-tool"
+    git_dir = tmp_path / "gitdirs" / "nul-commondir.git"
+    repo.mkdir()
+    git_dir.mkdir(parents=True)
+    (repo / ".git").write_text(f"gitdir: {git_dir}\n", encoding="utf-8")
+    (git_dir / "commondir").write_text("bad\x00commondir\n", encoding="utf-8")
+
+    result = _run_workspace_cli_json(repo)
+
+    assert result.returncode == 1, result.stderr
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert payload["repository_count"] == 1
+    assert payload["counts"] == {"MATCH": 0, "DRIFT": 0, "UNVERIFIABLE": 1}
+    assert payload["repositories"][0]["status"] == "UNVERIFIABLE"
+    assert "\x00" not in result.stdout
+    assert "bad" not in result.stdout
+    assert str(tmp_path) not in result.stdout
 
 
 def test_delivery_matrix_splits_public_and_developer_verdicts(tmp_path: Path) -> None:
