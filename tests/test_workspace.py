@@ -370,6 +370,51 @@ def test_cli_emits_workspace_matrix_json(tmp_path: Path) -> None:
     assert payload["repositories"][0]["remote"] == "HarperZ9/ready-tool"
 
 
+@pytest.mark.parametrize(
+    ("repo_name", "reason"),
+    [
+        ("nul-gitdir-tool", "gitdir target not found"),
+        ("nul-backpointer-tool", "gitdir backpointer mismatch"),
+        ("nul-commondir-tool", "git commondir not found"),
+    ],
+)
+def test_cli_reports_control_character_git_metadata_as_unverifiable_json(
+    tmp_path: Path, repo_name: str, reason: str
+) -> None:
+    workspace = tmp_path / "workspace"
+    repo = workspace / repo_name
+    repo.mkdir(parents=True)
+
+    if repo_name == "nul-gitdir-tool":
+        (repo / ".git").write_text("gitdir: bad\x00gitdir\n", encoding="utf-8")
+    else:
+        git_dir = tmp_path / "common" / "worktrees" / repo_name
+        git_dir.mkdir(parents=True)
+        (repo / ".git").write_text(f"gitdir: {git_dir}\n", encoding="utf-8")
+        if repo_name == "nul-backpointer-tool":
+            (git_dir / "gitdir").write_text("bad\x00marker\n", encoding="utf-8")
+            (git_dir / "commondir").write_text("..\\..\n", encoding="utf-8")
+        else:
+            (git_dir / "gitdir").write_text(str(repo / ".git"), encoding="utf-8")
+            (git_dir / "commondir").write_text("bad\x00commondir\n", encoding="utf-8")
+
+    result = _run_workspace_cli(workspace)
+
+    assert result.returncode == 1, result.stderr
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert payload["repository_count"] == 0
+    assert payload["workspace_status"] == "UNVERIFIABLE"
+    assert payload["coverage"]["empty_reason"] == "no_readable_git_metadata"
+    assert payload["coverage"]["unknown_repository_count"] == 1
+    assert payload["coverage"]["diagnostics"] == [
+        {"path": repo_name, "status": "UNVERIFIABLE", "reason": reason}
+    ]
+    assert "\x00" not in result.stdout
+    assert "bad" not in result.stdout
+    assert str(tmp_path) not in result.stdout
+
+
 def test_cli_fails_empty_workspace_with_json_reason(tmp_path: Path) -> None:
     result = _run_workspace_cli(tmp_path)
 

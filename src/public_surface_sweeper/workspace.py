@@ -331,12 +331,15 @@ def _read_gitfile_metadata(repo: Path, marker: Path) -> _GitMetadata:
     match = re.match(r"^gitdir:\s*(?P<gitdir>.+?)\s*$", first_line, re.IGNORECASE)
     if match is None:
         return _GitMetadata(repo=repo, config_paths=(), reason="unsupported .git file")
-    git_dir = Path(match.group("gitdir"))
+    raw_gitdir = match.group("gitdir")
+    if _has_control_characters(raw_gitdir):
+        return _GitMetadata(repo=repo, config_paths=(), reason="gitdir target not found")
+    git_dir = Path(raw_gitdir)
     if not git_dir.is_absolute():
         git_dir = marker.parent / git_dir
     try:
         git_dir = git_dir.resolve()
-    except OSError:
+    except (OSError, ValueError):
         return _GitMetadata(repo=repo, config_paths=(), reason="gitdir target not found")
     if not git_dir.is_dir():
         return _GitMetadata(repo=repo, config_paths=(), reason="gitdir target not found")
@@ -372,7 +375,7 @@ def _validate_linked_git_dir(marker: Path, git_dir: Path) -> str | None:
     try:
         expected_parent = (common_dir / "worktrees").resolve()
         actual_parent = git_dir.parent.resolve()
-    except OSError:
+    except (OSError, ValueError):
         return "gitdir is outside common worktrees directory"
     if actual_parent != expected_parent:
         return "gitdir is outside common worktrees directory"
@@ -380,12 +383,14 @@ def _validate_linked_git_dir(marker: Path, git_dir: Path) -> str | None:
 
 
 def _resolve_git_metadata_path(raw: str, base: Path) -> Path | None:
+    if _has_control_characters(raw):
+        return None
     path = Path(raw)
     if not path.is_absolute():
         path = base / path
     try:
         return path.resolve()
-    except OSError:
+    except (OSError, ValueError):
         return None
 
 
@@ -414,13 +419,19 @@ def _common_git_dir(git_dir: Path) -> Path | None:
     common_text = text[0].strip()
     if not common_text:
         return None
+    if _has_control_characters(common_text):
+        return None
     common = Path(common_text)
     if not common.is_absolute():
         common = git_dir / common
     try:
         return common.resolve()
-    except OSError:
+    except (OSError, ValueError):
         return None
+
+
+def _has_control_characters(value: str) -> bool:
+    return any(ord(char) < 32 for char in value)
 
 
 def _remote_urls_from_config_paths(config_paths: Iterable[Path]) -> list[str]:
