@@ -1,8 +1,20 @@
-<p align="center"><img src="docs/art/public-surface-sweeper-header.svg" alt="Public Surface Sweeper" width="100%"></p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/HarperZ9/public-surface-sweeper/main/docs/art/hero-dark.svg">
+  <img src="https://raw.githubusercontent.com/HarperZ9/public-surface-sweeper/main/docs/art/hero-light.svg" alt="public-surface-sweeper: Check a repo public surface for missing files and secret-shaped values. Lines arrive from one side at a toothed ring around a bright core; most pass through and a few stop at the ring with a short cross mark." width="100%">
+</picture>
 
-# Public Surface Sweeper
+# public-surface-sweeper
 
-> Check a repository's public surface before publishing or asking for trust.
+Check a repo public surface for missing files and secret-shaped values.
+
+```
+python -m pip install -e ".[test]"
+```
+
+[![version: 0.1.3](https://img.shields.io/badge/version-0.1.3-e6e1d6?style=flat-square&labelColor=1a1712)](https://github.com/HarperZ9/public-surface-sweeper/releases/latest)
+[![CI](https://github.com/HarperZ9/public-surface-sweeper/actions/workflows/ci.yml/badge.svg)](https://github.com/HarperZ9/public-surface-sweeper/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-e6e1d6?style=flat-square&labelColor=1a1712)](https://github.com/HarperZ9/public-surface-sweeper/blob/main/LICENSE)
+![python 3.10+](https://img.shields.io/badge/python-3.10%2B-e6e1d6?style=flat-square&labelColor=1a1712)
 
 Public Surface Sweeper audits public and developer delivery surfaces for
 GitHub-facing repositories. It checks whether a repo explains itself clearly,
