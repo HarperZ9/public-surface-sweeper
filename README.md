@@ -21,6 +21,12 @@ GitHub-facing repositories. It checks whether a repo explains itself clearly,
 has runnable handoff material, carries release/status metadata, avoids
 secret-shaped values, and can feed proof-surface evidence workflows.
 
+## See it work, step by step
+
+The [animated explainer](https://harperz9.github.io/repo-explainers/public-surface-sweeper.html)
+walks through the bundled clean fixture, a copy with a missing license and a secret-shaped value, its score and action items, its proof packet, and the flags that decide what fails the run. Every value on it is output from this repository. Its
+source is [docs/explainer/index.html](docs/explainer/index.html).
+
 ## Why it matters
 
 Small public repos often fail on simple delivery details: missing license,
