@@ -121,6 +121,14 @@ footer.foot p{max-width:70ch;margin:0 0 .6rem}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:0s!important;animation-duration:0s!important;animation-iteration-count:1!important;scroll-behavior:auto!important}
 }
+.film{margin:1rem 0 0;max-width:56rem}
+.film video{width:100%;height:auto;display:block;background:#000;border:1px solid var(--line)}
+.film figcaption{font-size:.9rem;color:var(--ink-soft);margin-top:.55rem;max-width:44rem;line-height:1.5}
+.soon{font-family:var(--font-mono);font-size:.8rem;color:var(--muted);margin-top:.8rem}
+ol.walkthrough{padding-left:1.4rem;max-width:56rem;margin:1rem 0 0}
+ol.walkthrough li{margin:0 0 1.4rem}
+ol.walkthrough h3{margin:0 0 .3rem;font-size:1.05rem}
+ol.walkthrough p{margin:0 0 .3rem;max-width:44rem}
 
 /* generic scene kit: a pipeline strip, an input/output panel, a case picker, a table */
 .kscene{display:flex;flex-direction:column;gap:.8rem}
@@ -174,6 +182,12 @@ footer.foot p{max-width:70ch;margin:0 0 .6rem}
   <p class="src">Source: <a href="https://github.com/HarperZ9/public-surface-sweeper/blob/51eccfb21bf01975d7159feeb35d98a3649d8019/README.md">README.md</a> at 51eccfb (version 0.1.3)</p>
 </section>
 
+<section class="block wrap" aria-labelledby="watch">
+  <h2 id="watch">Watch</h2>
+  <p class="measure">No concept film fits this tool closely yet. The walkthrough below covers it in text, with real commands and output.</p>
+  <p class="soon">Video walkthrough: coming with the next release.</p>
+</section>
+
 <section class="block wrap" aria-labelledby="how">
   <h2 id="how">How it works, one step at a time</h2>
   <p class="measure">Scroll, or use the step buttons. The panel uses the bundled <code>examples/clean-repo</code> and a copy of it with two problems added. Every line is output from public-surface-sweeper at commit 51eccfb.</p>
@@ -223,14 +237,36 @@ footer.foot p{max-width:70ch;margin:0 0 .6rem}
   </div>
 </section>
 
-<section class="block wrap" aria-labelledby="try">
-  <h2 id="try">Try it</h2>
-  <div class="measure"><p>Install the reviewed wheel from a GitHub Release, or from a checkout (Python 3.10 or newer).</p></div>
+<section class="block wrap" aria-labelledby="walkthrough">
+  <h2 id="walkthrough">Walkthrough</h2>
+  <p class="measure">Install it, run it once, then use the main feature. Each command below is real, and so is its output.</p>
+  <ol class="walkthrough">
+    <li><h3>Install</h3><p>Install from a checkout. Python 3.10 or newer.</p>
 <pre class="cmd"><code>$ git clone https://github.com/HarperZ9/public-surface-sweeper && cd public-surface-sweeper
-$ python -m pip install -e ".[test]"
-$ public-surface-sweeper examples/clean-repo
-<span class="out">No findings.</span>
-$ public-surface-sweeper . --summary</code></pre>
+$ python -m pip install -e ".[test]"</code></pre></li>
+    <li><h3>First run: a clean repository</h3><p>Sweep the bundled clean example.</p>
+<pre class="cmd"><code>$ public-surface-sweeper examples/clean-repo --summary
+<span class="out">score: 100
+status: ready
+total_findings: 0
+errors: 0
+warnings: 0
+action_items:
+- none</span></code></pre></li>
+    <li><h3>A repository with a problem</h3><p>Sweep a repository that carries a finding. The sweep blocks it.</p>
+<pre class="cmd"><code>$ public-surface-sweeper ./repo
+<span class="out">ERROR LICENSE required-file: missing required file: LICENSE
+ERROR notes.txt:1 aws-access-key: AWS access key shaped value</span></code></pre></li>
+    <li><h3>A proof packet</h3><p>Write the result as a packet another tool can check.</p>
+<pre class="cmd"><code>$ public-surface-sweeper ./repo --proof-packet
+<span class="out">&quot;surface&quot;: &quot;repo public release surface&quot;
+&quot;status&quot;: &quot;blocked&quot;
+Required public release files are visible.   required-file findings=1
+Secret-shaped values are surfaced before publication.   secret-shaped findings=1
+Public text hygiene is checkable.   em-dash findings=0
+Public and developer delivery are inspectable.   delivery findings=0
+check: public-surface-sweeper  fail  score=50, findings=2</span></code></pre></li>
+  </ol>
   <p class="src">Output from public-surface-sweeper at 51eccfb on Windows with Python 3.12. The broken copy deletes LICENSE and adds one note.</p>
 </section>
 

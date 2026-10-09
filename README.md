@@ -27,6 +27,57 @@ The [animated explainer](https://harperz9.github.io/repo-explainers/public-surfa
 walks through the bundled clean fixture, a copy with a missing license and a secret-shaped value, its score and action items, its proof packet, and the flags that decide what fails the run. Every value on it is output from this repository. Its
 source is [docs/explainer/index.html](docs/explainer/index.html).
 
+## Watch
+
+No concept film fits this tool closely yet. The walkthrough below covers it in text, with real commands and output.
+
+Video walkthrough: coming with the next release.
+
+## Walkthrough
+
+Install it, run it once, then use the main feature. Each command below is real, and so is its output.
+
+1. **Install.** Install from a checkout. Python 3.10 or newer.
+
+   ```text
+   $ git clone https://github.com/HarperZ9/public-surface-sweeper && cd public-surface-sweeper
+   $ python -m pip install -e ".[test]"
+   ```
+
+2. **First run: a clean repository.** Sweep the bundled clean example.
+
+   ```text
+   $ public-surface-sweeper examples/clean-repo --summary
+   score: 100
+   status: ready
+   total_findings: 0
+   errors: 0
+   warnings: 0
+   action_items:
+   - none
+   ```
+
+3. **A repository with a problem.** Sweep a repository that carries a finding. The sweep blocks it.
+
+   ```text
+   $ public-surface-sweeper ./repo
+   ERROR LICENSE required-file: missing required file: LICENSE
+   ERROR notes.txt:1 aws-access-key: AWS access key shaped value
+   ```
+
+4. **A proof packet.** Write the result as a packet another tool can check.
+
+   ```text
+   $ public-surface-sweeper ./repo --proof-packet
+   "surface": "repo public release surface"
+   "status": "blocked"
+   Required public release files are visible.   required-file findings=1
+   Secret-shaped values are surfaced before publication.   secret-shaped findings=1
+   Public text hygiene is checkable.   em-dash findings=0
+   Public and developer delivery are inspectable.   delivery findings=0
+   check: public-surface-sweeper  fail  score=50, findings=2
+   ```
+
 ## Why it matters
 
 Small public repos often fail on simple delivery details: missing license,
