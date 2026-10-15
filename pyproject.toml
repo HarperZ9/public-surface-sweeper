@@ -21,6 +21,12 @@ classifiers = [
 ]
 dependencies = ["proof-surface>=0.1"]
 
+[project.urls]
+Homepage = "https://harperz9.github.io/repo-explainers/public-surface-sweeper.html"
+Source = "https://github.com/HarperZ9/public-surface-sweeper"
+Issues = "https://github.com/HarperZ9/public-surface-sweeper/issues"
+Changelog = "https://github.com/HarperZ9/public-surface-sweeper/blob/main/CHANGELOG.md"
+
 [project.optional-dependencies]
 test = ["pytest>=8"]
 
