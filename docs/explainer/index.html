@@ -171,13 +171,13 @@ ol.walkthrough p{margin:0 0 .3rem;max-width:44rem}
 <section class="block wrap" aria-labelledby="for-you">
   <h2 id="for-you">What it does for you</h2>
   <div class="measure">
-    <p>Small public repositories fail on simple things: a missing license, a README that does not say what the tool does, a credential-shaped string left in a note. Public Surface Sweeper checks those quickly and the same way every time, scores the repository, lists what to fix, and can scan every GitHub-facing repository in a workspace at once.</p>
+    <p>Small public repositories fail on simple things: a missing license, a README that skips what the tool does, a credential-shaped string left in a note. Public Surface Sweeper checks those quickly and the same way every time, scores the repository, lists what to fix, and can scan every GitHub-facing repository in a workspace at once.</p>
   </div>
   <ul class="uses">
     <li><b>Required files</b>A license, a README, a changelog and the other files a visitor expects.</li>
     <li><b>Secret shapes</b>Values shaped like cloud keys and tokens are reported with the file and line.</li>
     <li><b>A score and a status</b>Errors block, warnings are counted, and the run exits 1 on errors by default.</li>
-    <li><b>A workspace matrix</b><code>--workspace</code> sweeps every repository with a GitHub remote, with no network calls and no writes.</li>
+    <li><b>A workspace matrix</b><code>--workspace</code> sweeps every repository with a GitHub remote, offline and read-only.</li>
   </ul>
   <p class="src">Source: <a href="https://github.com/HarperZ9/public-surface-sweeper/blob/51eccfb21bf01975d7159feeb35d98a3649d8019/README.md">README.md</a> at 51eccfb (version 0.1.3)</p>
 </section>
@@ -204,7 +204,7 @@ ol.walkthrough p{margin:0 0 .3rem;max-width:44rem}
     <ol class="steps">
       <li class="step" tabindex="-1" data-scene="k0" data-state="s"><div class="card">
         <span class="num">01</span><h3>A clean repository</h3>
-        <p>The bundled fixture has the files a public repository should carry: a license, a README, a usage guide, a changelog, contributing notes, an authors file, agent instructions and a CI folder. The sweep finds nothing, scores 100 and reports ready.</p>
+        <p>The bundled fixture has the files a public repository should carry: a license, a README, a usage guide, a changelog, contributing notes, an authors file, agent instructions and a CI folder. The sweep returns zero findings, scores 100 and reports ready.</p>
         <p class="src">Source: <a href="https://github.com/HarperZ9/public-surface-sweeper/blob/51eccfb21bf01975d7159feeb35d98a3649d8019/examples/clean-repo">examples/clean-repo</a>; README.md, "Try it"</p>
       </div></li>
       <li class="step" tabindex="-1" data-scene="k1" data-state="s"><div class="card">
@@ -219,12 +219,12 @@ ol.walkthrough p{margin:0 0 .3rem;max-width:44rem}
       </div></li>
       <li class="step" tabindex="-1" data-scene="k3" data-state="s"><div class="card">
         <span class="num">04</span><h3>Evidence for the next tool</h3>
-        <p><code>--proof-packet</code> writes a proof-surface packet. Its claims carry the counts behind each check: one required-file finding, one secret-shaped finding, no em-dash findings, no delivery findings. The check reads fail at score 50.</p>
+        <p><code>--proof-packet</code> writes a proof-surface packet. Its claims carry the counts behind each check: one required-file finding, one secret-shaped finding, zero em-dash findings, zero delivery findings. The check reads fail at score 50.</p>
         <p class="src">Source: <a href="https://github.com/HarperZ9/public-surface-sweeper/blob/51eccfb21bf01975d7159feeb35d98a3649d8019/src/public_surface_sweeper/cli.py">src/public_surface_sweeper/cli.py</a></p>
       </div></li>
       <li class="step" tabindex="-1" data-scene="k4" data-state="s"><div class="card">
         <span class="num">05</span><h3>Choose what fails the run</h3>
-        <p>By default the run exits 1 on errors. <code>--fail-on warning</code> fails on warnings too, and <code>--fail-on none</code> prints findings and always exits 0. In workspace mode, a discovery that finds no repositories also fails, so an empty matrix never passes as a clean one.</p>
+        <p>By default the run exits 1 on errors. <code>--fail-on warning</code> fails on warnings too, and <code>--fail-on none</code> prints findings and always exits 0. In workspace mode, a discovery that finds zero repositories also fails, so an empty matrix reads as a failure.</p>
         <p class="src">Source: README.md, "Usage"</p>
       </div></li>
     </ol>
@@ -265,11 +265,11 @@ check: public-surface-sweeper  fail  score=50, findings=2</span></code></pre></l
 </section>
 
 <section class="block wrap" aria-labelledby="limits">
-  <h2 id="limits">What it does not do</h2>
+  <h2 id="limits">Limits</h2>
   <ul class="limits">
-    <li>It is a release-hygiene gate. It is not a full security scanner or a certification.</li>
-    <li>Secret detection is by shape. A credential that does not look like one is not found.</li>
-    <li>Workspace mode reads local Git metadata only and makes no network call.</li>
+    <li>It is a release-hygiene gate. Pair it with a security scanner for a full review.</li>
+    <li>Secret detection is by shape, so it finds credentials that look like credentials.</li>
+    <li>Workspace mode reads local Git metadata, offline.</li>
   </ul>
   <p class="src">Source: README.md at 51eccfb, "Current status" and "Usage"</p>
 </section>
@@ -279,7 +279,7 @@ check: public-surface-sweeper  fail  score=50, findings=2</span></code></pre></l
   <p class="measure">Answer each one in your head before you open it.</p>
   <details><summary>What two findings did the broken copy get?</summary><p>A missing LICENSE and an AWS-access-key-shaped value in notes.txt, line 1.</p></details>
   <details><summary>What score and status follow from two errors?</summary><p>50 and blocked.</p></details>
-  <details><summary>Why does an empty workspace discovery fail?</summary><p>So a matrix of zero repositories never passes as a clean portfolio.</p></details>
+  <details><summary>A workspace discovery finds zero repositories. What happens, and why?</summary><p>It fails, so an empty matrix reads as a failure and a clean result always means repositories were checked.</p></details>
 </section>
 </main>
 <footer class="foot wrap">
