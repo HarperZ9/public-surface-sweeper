@@ -98,8 +98,8 @@ from public_surface_sweeper.workspace import (
     discover_forward_facing_repos,
 )
 
-repos = discover_forward_facing_repos([Path("C:/dev/public")])
-matrix = build_delivery_matrix([Path("C:/dev/public")])
+repos = discover_forward_facing_repos([Path("path/to/workspace")])
+matrix = build_delivery_matrix([Path("path/to/workspace")])
 print(matrix["counts"])
 ```
 
@@ -237,7 +237,7 @@ the command writes an error to stderr and exits `1`.
 ### 5. Workspace delivery matrix
 
 ```bash
-public-surface-sweeper C:/dev/public --workspace --json
+public-surface-sweeper path/to/workspace --workspace --json
 ```
 
 Expected output shape:

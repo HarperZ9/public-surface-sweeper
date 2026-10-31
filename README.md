@@ -144,7 +144,7 @@ public-surface-sweeper . --summary
 public-surface-sweeper . --summary --json
 public-surface-sweeper . --proof-packet
 public-surface-sweeper . --fail-on warning
-public-surface-sweeper C:/dev/public --workspace --json
+public-surface-sweeper path/to/workspace --workspace --json
 ```
 
 The command exits with status `1` when error-level findings are present.
@@ -170,7 +170,7 @@ No findings.
 Scan every GitHub-facing repository under a workspace root:
 
 ```bash
-public-surface-sweeper C:/dev/public --workspace
+public-surface-sweeper path/to/workspace --workspace
 ```
 
 Workspace mode discovers local repositories with GitHub remotes, deduplicates

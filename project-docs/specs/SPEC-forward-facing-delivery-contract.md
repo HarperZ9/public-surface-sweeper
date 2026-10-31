@@ -49,7 +49,7 @@ workspace matrix classify the new rules into public and developer verdicts.
 - [x] `python -m pytest tests/test_sweeper.py tests/test_workspace.py -q`
   passes.
 - [x] `public-surface-sweeper examples/clean-repo --summary` reports ready.
-- [x] `public-surface-sweeper C:/dev/public/public-surface-sweeper --workspace --json`
+- [x] `public-surface-sweeper path/to/workspace/public-surface-sweeper --workspace --json`
   returns a privacy-preserving matrix.
 - [x] `python -m compileall -q src` passes.
 - [x] `git diff --check` passes.
